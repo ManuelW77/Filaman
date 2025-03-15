@@ -13,7 +13,7 @@ The system integrates seamlessly with [Bambu Lab](https://bambulab.com/en-us) 3D
 More Images can be found in the [img Folder](/img/)  
 or my website: [FilaMan Website](https://www.filaman.app)  
 german explanatory video: [Youtube](https://youtu.be/uNDe2wh9SS8?si=b-jYx4I1w62zaOHU)  
-Discord Server: [https://discord.gg/vMAx2gf5](https://discord.gg/vMAx2gf5)
+Discord Server: [https://discord.gg/vMAx2gf5](https://discord.gg/WbsYwzdW)
 
 ### Now more detailed informations about the usage: [Wiki](https://github.com/ManuelW77/Filaman/wiki)
 
