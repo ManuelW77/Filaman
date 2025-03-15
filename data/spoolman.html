@@ -1,0 +1,171 @@
+<!-- head --><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FilaMan - Filament Management Tool</title>
+    <link rel="icon" type="image/png" href="/favicon.ico">
+    <link rel="stylesheet" href="style.css">
+    <script>
+        fetch('/api/version')
+            .then(response => response.json())
+            .then(data => {
+                const versionSpan = document.querySelector('.version');
+                if (versionSpan) {
+                    versionSpan.textContent = 'v' + data.version;
+                }
+            })
+            .catch(error => console.error('Error fetching version:', error));
+    </script>
+</head>
+<body>
+    <div class="navbar">
+        <div style="display: flex; align-items: center; gap: 2rem;">
+            <img src="/logo.png" alt="FilaMan Logo" class="logo">
+            <div class="logo-text">
+                <h1>FilaMan<span class="version"></span></h1>
+                <h4>Filament Management Tool</h4>
+            </div>
+        </div>
+        <nav style="display: flex; gap: 1rem;">
+            <a href="/">Start</a>
+            <a href="/waage">Scale</a>
+            <a href="/spoolman">Spoolman/Bambu</a>
+            <a href="/about">About</a>
+            <a href="/upgrade">Upgrade</a>
+        </nav>
+        <div class="status-container">
+            <div class="status-item">
+                <span class="status-dot" id="bambuDot"></span>B
+            </div>
+            <div class="status-item">
+                <span class="status-dot" id="spoolmanDot"></span>S
+            </div>
+            <div class="ram-status" id="ramStatus"></div>
+        </div>
+    </div>
+
+<!-- head -->
+
+    <script>
+        window.onload = function() {
+            if (spoolmanUrl && spoolmanUrl.trim() !== "") {
+                document.getElementById('spoolmanUrl').value = spoolmanUrl;
+            }
+            
+            // Initialize OctoPrint fields visibility
+            toggleOctoFields();
+        };
+
+        function checkSpoolmanInstance() {
+            const url = document.getElementById('spoolmanUrl').value;
+            const spoolmanOctoEnabled = document.getElementById('spoolmanOctoEnabled').checked;
+            const spoolmanOctoUrl = document.getElementById('spoolmanOctoUrl').value;
+            const spoolmanOctoToken = document.getElementById('spoolmanOctoToken').value;
+            
+            fetch(`/api/checkSpoolman?url=${encodeURIComponent(url)}&octoEnabled=${spoolmanOctoEnabled}&octoUrl=${spoolmanOctoUrl}&octoToken=${spoolmanOctoToken}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.healthy) {
+                        document.getElementById('statusMessage').innerText = 'Spoolman-Instance is availabe and healthy!';
+                    } else {
+                        document.getElementById('statusMessage').innerText = 'Spoolman-Instance not available.';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('statusMessage').innerText = 'Error while connecting to Spoolman-Instance: ' + error.message;
+                });
+        }
+
+        function saveBambuCredentials() {
+            const ip = document.getElementById('bambuIp').value;
+            const serial = document.getElementById('bambuSerial').value;
+            const code = document.getElementById('bambuCode').value;
+            const autoSend = document.getElementById('autoSend').checked;
+            const autoSendTime = document.getElementById('autoSendTime').value;
+
+            fetch(`/api/bambu?bambu_ip=${encodeURIComponent(ip)}&bambu_serialnr=${encodeURIComponent(serial)}&bambu_accesscode=${encodeURIComponent(code)}&autoSend=${autoSend}&autoSendTime=${autoSendTime}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.healthy) {
+                        document.getElementById('bambuStatusMessage').innerText = 'Bambu Credentials saved!';
+                    } else {
+                        document.getElementById('bambuStatusMessage').innerText = 'Error while saving Bambu Credentials.';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('bambuStatusMessage').innerText = 'Error while saving: ' + error.message;
+                });
+        }
+
+        /**
+         * Controls visibility of OctoPrint configuration fields based on checkbox state
+         * Called on page load and when checkbox changes
+         */
+        function toggleOctoFields() {
+            const octoEnabled = document.getElementById('spoolmanOctoEnabled').checked;
+            document.getElementById('octoFields').style.display = octoEnabled ? 'block' : 'none';
+        }
+    </script>
+    <script>
+        var spoolmanUrl = "{{spoolmanUrl}}";
+    </script>
+    
+    <div class="content">
+        <h1>Spoolman API URL / Bambu Credentials</h1>
+
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Set URL/IP to your Spoolman-Instanz</h5>
+                <input type="text" id="spoolmanUrl" placeholder="http://ip-or-url-of-your-spoolman-instanz:port">
+                <h5 class="card-title">If you want to enable sending Spool to Spoolman Octoprint Plugin:</h5>
+                <p>
+                    <input type="checkbox" id="spoolmanOctoEnabled" {{spoolmanOctoEnabled}} onchange="toggleOctoFields()"> Send to Octo-Plugin
+                </p>
+                <div id="octoFields" style="display: none;">
+                    <p>
+                        <input type="text" id="spoolmanOctoUrl" placeholder="http://ip-or-url-of-your-octoprint-instanz:port" value="{{spoolmanOctoUrl}}">
+                        <input type="text" id="spoolmanOctoToken" placeholder="Your Octoprint Token" value="{{spoolmanOctoToken}}">
+                    </p>
+                </div>
+                
+                <button onclick="checkSpoolmanInstance()">Save Spoolman URL</button>
+                <p id="statusMessage"></p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Bambu Lab Printer Credentials</h5>
+                <div class="bambu-settings">
+                    <div class="input-group">
+                        <label for="bambuIp">Bambu Drucker IP-Adresse:</label>
+                        <input type="text" id="bambuIp" placeholder="192.168.1.xxx" value="{{bambuIp}}">
+                    </div>
+                    <div class="input-group">
+                        <label for="bambuSerial">Drucker Seriennummer:</label>
+                        <input type="text" id="bambuSerial" placeholder="BBLXXXXXXXX" value="{{bambuSerial}}">
+                    </div>
+                    <div class="input-group">
+                        <label for="bambuCode">Access Code:</label>
+                        <input type="text" id="bambuCode" placeholder="Access Code vom Drucker" value="{{bambuCode}}">
+                    </div>
+                    <hr>
+                    <p>If activated, FilaMan will automatically update the next filled tray with the last scanned and weighed spool.</p>
+                    <div class="input-group" style="display: flex; margin-bottom: 0;">
+                        <label for="autoSend" style="width: 250px; margin-right: 5px;">Auto Send to Bambu:</label>
+                        <label for="autoSendTime" style="width: 250px; margin-right: 5px;">Wait for Spool in Sec:</label>
+                    </div>
+                    <div class="input-group" style="display: flex;">
+                        <input type="checkbox" id="autoSend" {{autoSendToBambu}} style="width: 190px; margin-right: 10px;">
+                        <input type="number" min="60" id="autoSendTime" placeholder="Time to wait" value="{{autoSendTime}}" style="width: 100px;">
+                    </div>
+
+                    <button style="margin: 0;" onclick="saveBambuCredentials()">Save Bambu Credentials</button>
+                    <p id="bambuStatusMessage"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

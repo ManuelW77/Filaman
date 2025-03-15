@@ -549,20 +549,47 @@ void reconnect() {
     uint8_t retries = 0;
     while (!client.connected()) {
         Serial.println("Attempting MQTT re/connection...");
+        Serial.print("State before connect: ");
+        Serial.println(client.state());
         bambu_connected = false;
         oledShowTopRow();
 
-        // Attempt to connect
-        if (client.connect(bambu_serialnr, bambu_username, bambu_accesscode)) {
-            Serial.println("MQTT re/connected");
+        // Generate a random client ID suffix
+        String clientId = String(bambu_serialnr) + "_" + String(random(0xffff), HEX);
+        Serial.print("Reconnecting with client ID: ");
+        Serial.println(clientId);
 
-            client.subscribe(report_topic.c_str());
+        // Attempt to connect with clean session and will message
+        if (client.connect(clientId.c_str(), bambu_username, bambu_accesscode, nullptr, 0, true, nullptr)) {
+            Serial.println("MQTT re/connected");
+            
+            // Subscribe with QoS 1
+            if (client.subscribe(report_topic.c_str(), 1)) {
+                Serial.println("Successfully subscribed to topic with QoS 1: " + report_topic);
+            } else {
+                Serial.println("Failed to subscribe to topic: " + report_topic);
+            }
             bambu_connected = true;
             oledShowTopRow();
         } else {
+            int state = client.state();
             Serial.print("failed, rc=");
-            Serial.print(client.state());
-            Serial.println(" try again in 5 seconds");
+            Serial.print(state);
+            Serial.print(" (");
+            // Print detailed error message
+            switch(state) {
+                case -4: Serial.print("MQTT_CONNECTION_TIMEOUT"); break;
+                case -3: Serial.print("MQTT_CONNECTION_LOST"); break;
+                case -2: Serial.print("MQTT_CONNECT_FAILED"); break;
+                case -1: Serial.print("MQTT_DISCONNECTED"); break;
+                case 1: Serial.print("MQTT_CONNECT_BAD_PROTOCOL"); break;
+                case 2: Serial.print("MQTT_CONNECT_BAD_CLIENT_ID"); break;
+                case 3: Serial.print("MQTT_CONNECT_UNAVAILABLE"); break;
+                case 4: Serial.print("MQTT_CONNECT_BAD_CREDENTIALS"); break;
+                case 5: Serial.print("MQTT_CONNECT_UNAUTHORIZED"); break;
+                default: Serial.print("UNKNOWN"); break;
+            }
+            Serial.println(") try again in 5 seconds");
             bambu_connected = false;
             oledShowTopRow();
             
@@ -570,11 +597,9 @@ void reconnect() {
             vTaskDelay(5000 / portTICK_PERIOD_MS);
             if (retries > 5) {
                 Serial.println("Disable Bambu MQTT Task after 5 retries");
-                //vTaskSuspend(BambuMqttTask);
                 vTaskDelete(BambuMqttTask);
                 break;
             }
-
             retries++;
         }
     }
@@ -582,17 +607,32 @@ void reconnect() {
 
 void mqtt_loop(void * parameter) {
     Serial.println("Bambu MQTT Task gestartet");
+    unsigned long lastCheck = 0;
+    
     for(;;) {
         if (pauseBambuMqttTask) {
             vTaskDelay(10000);
+            continue;
         }
 
+        unsigned long now = millis();
+        
         if (!client.connected()) {
+            Serial.println("Connection lost, attempting reconnect...");
             reconnect();
             yield();
             esp_task_wdt_reset();
             vTaskDelay(100);
+            continue;
         }
+
+        // Periodically check connection status
+        if (now - lastCheck > 30000) {  // Check every 30 seconds
+            Serial.print("MQTT Status Check - Connected: ");
+            Serial.println(client.connected() ? "Yes" : "No");
+            lastCheck = now;
+        }
+
         client.loop();
         yield();
         esp_task_wdt_reset();
@@ -617,15 +657,30 @@ bool setupMqtt() {
         sslClient.setInsecure();
         client.setServer(bambu_ip, 8883);
 
+        // Generate a random client ID suffix
+        String clientId = String(bambu_serialnr) + "_" + String(random(0xffff), HEX);
+        
+        // MQTT Connection Options
+       // client.setKeepAlive(60);
+       // client.setSocketTimeout(60);  // Increase socket timeout
+        
+        Serial.print("Connecting with client ID: ");
+        Serial.println(clientId);
+
         // Verbinden mit dem MQTT-Server
         bool connected = true;
-        if (client.connect(bambu_serialnr, bambu_username, bambu_accesscode)) 
+        if (client.connect(clientId.c_str(), bambu_username, bambu_accesscode, nullptr, 0, true, nullptr)) 
         {
             client.setCallback(mqtt_callback);
-            client.setBufferSize(5120);
-            // Optional: Topic abonnieren
-            client.subscribe(report_topic.c_str());
-            //client.subscribe(request_topic.c_str());
+            client.setBufferSize(16384);  // Increased to 16KB to handle larger JSON
+            
+            // Subscribe with QoS 1
+            if (client.subscribe(report_topic.c_str(), 1)) {
+                Serial.println("Successfully subscribed to topic with QoS 1: " + report_topic);
+            } else {
+                Serial.println("Failed to subscribe to topic: " + report_topic);
+            }
+            
             Serial.println("MQTT-Client initialisiert");
 
             oledShowMessage("Bambu Connected");
@@ -635,7 +690,7 @@ bool setupMqtt() {
             xTaskCreatePinnedToCore(
                 mqtt_loop, /* Function to implement the task */
                 "BambuMqtt", /* Name of the task */
-                8192,  /* Stack size in words */
+                16384,  /* Stack size in words */
                 NULL,  /* Task input parameter */
                 mqttTaskPrio,  /* Priority of the task */
                 &BambuMqttTask,  /* Task handle. */
