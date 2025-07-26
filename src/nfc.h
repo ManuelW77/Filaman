@@ -19,7 +19,8 @@ void startWriteJsonToTag(const char* payload);
 
 extern TaskHandle_t RfidReaderTask;
 extern String nfcJsonData;
-extern String spoolId;
+extern String activeSpoolId;
+extern String lastSpoolId;
 extern volatile nfcReaderStateType nfcReaderState;
 extern volatile bool pauseBambuMqttTask;
 

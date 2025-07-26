@@ -14,7 +14,8 @@ Adafruit_PN532 nfc(PN532_IRQ, PN532_RESET);
 TaskHandle_t RfidReaderTask;
 
 JsonDocument rfidData;
-String spoolId = "";
+String activeSpoolId = "";
+String lastSpoolId = "";
 String nfcJsonData = "";
 volatile bool pauseBambuMqttTask = false;
 
@@ -64,6 +65,8 @@ void payloadToJson(uint8_t *data) {
         Serial.print("deserializeJson() failed: ");
         Serial.println(error.f_str());
       }
+
+      doc.clear();
     } else {
         Serial.println("Kein gültiger JSON-Inhalt gefunden oder fehlerhafte Formatierung.");
         //writeJsonToTag("{\"version\":\"1.0\",\"protocol\":\"NFC\",\"color_hex\":\"#FFFFFF\",\"type\":\"Example\",\"min_temp\":10,\"max_temp\":30,\"brand\":\"BrandName\"}");
@@ -218,17 +221,18 @@ bool decodeNdefAndReturnJson(const byte* encodedMessage) {
     // Sende die aktualisierten AMS-Daten an alle WebSocket-Clients
     Serial.println("JSON-Dokument erfolgreich verarbeitet");
     Serial.println(doc.as<String>());
-    if (doc.containsKey("sm_id") && doc["sm_id"] != "") 
+    if (doc["sm_id"].is<String>() && doc["sm_id"] != "") 
     {
       Serial.println("SPOOL-ID gefunden: " + doc["sm_id"].as<String>());
-      spoolId = doc["sm_id"].as<String>();
+      activeSpoolId = doc["sm_id"].as<String>();
+      lastSpoolId = activeSpoolId;
     }
-    else if(doc.containsKey("location") && doc["location"] != "")
+    else if(doc["location"].is<String>() && doc["location"] != "")
     {
       Serial.println("Location Tag found!");
       String location = doc["location"].as<String>();
-      if(spoolId != ""){
-        updateSpoolLocation(spoolId, location);
+      if(lastSpoolId != ""){
+        updateSpoolLocation(lastSpoolId, location);
       }
       else
       {
@@ -240,11 +244,13 @@ bool decodeNdefAndReturnJson(const byte* encodedMessage) {
     else 
     {
       Serial.println("Keine SPOOL-ID gefunden.");
-      spoolId = "";
+      activeSpoolId = "";
       oledShowMessage("Unknown Spool");
       vTaskDelay(2000 / portTICK_PERIOD_MS);
     }
   }
+
+  doc.clear();
 
   return true;
 }
@@ -446,6 +452,7 @@ void scanRfidTask(void * parameter) {
         nfcReaderState = NFC_IDLE;
         //uidString = "";
         nfcJsonData = "";
+        activeSpoolId = "";
         Serial.println("Tag entfernt");
         if (!autoSendToBambu) oledShowWeight(weight);
       }

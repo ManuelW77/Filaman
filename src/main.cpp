@@ -212,14 +212,14 @@ void loop() {
   lastWeight = weight;
 
   // Wenn ein Tag mit SM id erkannte wurde und der Waage Counter anspricht an SM Senden
-  if (spoolId != "" && weigthCouterToApi > 3 && weightSend == 0 && nfcReaderState == NFC_READ_SUCCESS) {
+  if (activeSpoolId != "" && weigthCouterToApi > 3 && weightSend == 0 && nfcReaderState == NFC_READ_SUCCESS) {
     oledShowIcon("loading");
-    if (updateSpoolWeight(spoolId, weight)) 
+    if (updateSpoolWeight(activeSpoolId, weight)) 
     {
       oledShowIcon("success");
       vTaskDelay(2000 / portTICK_PERIOD_MS);
       weightSend = 1;
-      autoSetToBambuSpoolId = spoolId.toInt();
+      autoSetToBambuSpoolId = activeSpoolId.toInt();
 
       if (octoEnabled) 
       {
