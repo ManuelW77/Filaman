@@ -37,6 +37,11 @@ volatile nfcReaderStateType nfcReaderState = NFC_IDLE;
 // ***** PN532
 
 
+// ##### Recycling Fabrik #####
+bool isRecyclingFabrik(const char* brand) {
+    return strcmp(brand, "Recycling Fabrik") == 0;
+}
+
 // ##### Funktionen für RFID #####
 void payloadToJson(uint8_t *data) {
     const char* startJson = strchr((char*)data, '{');
@@ -57,7 +62,13 @@ void payloadToJson(uint8_t *data) {
         int min_temp = doc["min_temp"];
         int max_temp = doc["max_temp"];
         const char* brand = doc["brand"];
-  
+
+        // Recycling Fabrik
+        if (isRecyclingFabrik(brand)) {
+          // TODO: Implement specific handling for Recycling Fabrik
+          Serial.println("Recycling Fabrik erkannt.");
+        }
+
         Serial.println();
         Serial.println("-----------------");
         Serial.println("JSON-Parsed Data:");
@@ -215,7 +226,7 @@ bool decodeNdefAndReturnJson(const byte* encodedMessage) {
   }
 
   // JSON-Dokument verarbeiten
-  JsonDocument doc;  // Passen Sie die Größe an den JSON-Inhalt an
+  JsonDocument doc;
   DeserializationError error = deserializeJson(doc, nfcJsonData);
   if (error) 
   {
@@ -232,7 +243,7 @@ bool decodeNdefAndReturnJson(const byte* encodedMessage) {
       // Sende die aktualisierten AMS-Daten an alle WebSocket-Clients
       Serial.println("JSON-Dokument erfolgreich verarbeitet");
       Serial.println(doc.as<String>());
-      if (doc["sm_id"].is<String>() && doc["sm_id"] != "") 
+      if (doc["sm_id"].is<String>() && doc["sm_id"] != "" && doc["sm_id"] != "0")
       {
         oledShowProgressBar(2, octoEnabled?5:4, "Spool Tag", "Weighing");
         Serial.println("SPOOL-ID gefunden: " + doc["sm_id"].as<String>());
@@ -253,6 +264,13 @@ bool decodeNdefAndReturnJson(const byte* encodedMessage) {
           Serial.println("Location update tag scanned without scanning spool before!");
           oledShowProgressBar(1, 1, "Failure", "Scan spool first");
         }
+      }
+      // Recycling Fabrik
+      else if (isRecyclingFabrik(doc["type"].as<String>().c_str())) {
+        // If no sm_id is present but the brand is Recycling Fabrik then
+        // create a new spool, maybe brand too, in Spoolman
+        Serial.println("Recycling Fabrik Tag found!");
+        createFilamentFabrik(doc);
       }
       else 
       {
