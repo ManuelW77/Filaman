@@ -675,6 +675,27 @@ uint16_t checkFilament(uint16_t vendorId) {
 }
 
 bool createFilament() {
+    // {
+    //     "name": "PolyTerra Charcoal Black",
+    //     "vendor_id": 0,
+    //     "material": "PLA",
+    //     "price": 20,
+    //     "density": 1.24,
+    //     "diameter": 1.75,
+    //     "weight": 1000,
+    //     "spool_weight": 140,
+    //     "article_number": "PM70820",
+    //     "comment": "automatically generated",
+    //     "settings_extruder_temp": 210,
+    //     "settings_bed_temp": 60,
+    //     "color_hex": "FF0000",
+    //     "multi_color_hexes": "FF0000,00FF00,0000FF",
+    //     "multi_color_direction": "coaxial",
+    //     "external_id": "polymaker_pla_polysonicblack_1000_175",
+    //     "extra": {
+    //         "nozzle_temperature": "string"
+    //     }
+    // }
 
 }
 
@@ -684,6 +705,23 @@ uint16_t checkSpool() {
 
 bool createSpool() {
     // Implement specific handling for Spool creation
+    // {
+    //     "first_used": "2019-08-24T14:15:22Z",
+    //     "last_used": "2019-08-24T14:15:22Z",
+    //     "filament_id": 0,
+    //     "price": 20,
+    //     "initial_weight": 200,
+    //     "spool_weight": 200,
+    //     "remaining_weight": 800,
+    //     "used_weight": 200,
+    //     "location": "Shelf A",
+    //     "lot_nr": "52342",
+    //     "comment": "",
+    //     "archived": false,
+    //     "extra": {
+    //         "nfc_id": "string"
+    //     }
+    // }
 }
 
 // #### Spoolman init
