@@ -97,7 +97,8 @@ int16_t lastWeight = 0;
 
 // WIFI check variables
 unsigned long lastWifiCheckTime = 0;
-const unsigned long wifiCheckInterval = 60000; // Überprüfe alle 60 Sekunden (60000 ms)
+unsigned long lastTopRowUpdateTime = 0;
+unsigned long lastSpoolmanHealcheckTime = 0;
 
 // Button debounce variables
 unsigned long lastButtonPress = 0;
@@ -115,15 +116,21 @@ void loop() {
   }
 
   // Überprüfe regelmäßig die WLAN-Verbindung
-  if (intervalElapsed(currentMillis, lastWifiCheckTime, wifiCheckInterval)) 
+  if (intervalElapsed(currentMillis, lastWifiCheckTime, WIFI_CHECK_INTERVAL)) 
   {
     checkWiFiConnection();
   }
 
   // Periodic display update
-  if (intervalElapsed(currentMillis, lastWifiCheckTime, 1000)) 
+  if (intervalElapsed(currentMillis, lastTopRowUpdateTime, DISPLAY_UPDATE_INTERVAL)) 
   {
     oledShowTopRow();
+  }
+
+  // Periodic spoolman health check
+  if (intervalElapsed(currentMillis, lastSpoolmanHealcheckTime, SPOOLMAN_HEALTHCHECK_INTERVAL)) 
+  {
+    checkSpoolmanInstance();
   }
 
   // Wenn Bambu auto set Spool aktiv
@@ -156,94 +163,95 @@ void loop() {
     }
   }
 
-  // Wenn Waage nicht Kalibriert
-  if (scaleCalibrated == 3) 
+  // If scale is not calibrated, only show a warning
+  if (!scaleCalibrated) 
   {
-    oledShowMessage("Scale not calibrated!");
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
-    yield();
-    esp_task_wdt_reset();
-    
-    return;
-  } 
-
-  // Ausgabe der Waage auf Display
-  if(pauseMainTask == 0)
-  {
-    if (mainTaskWasPaused || (weight != lastWeight && nfcReaderState == NFC_IDLE && (!bambuCredentials.autosend_enable || autoSetToBambuSpoolId == 0)))
-    {
-      (weight < 2) ? ((weight < -2) ? oledShowMessage("!! -0") : oledShowWeight(0)) : oledShowWeight(weight);
+    // Do not show the warning if the calibratin process is onging
+    if(!scaleCalibrationActive){
+      oledShowMessage("Scale not calibrated");
+      vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
-    mainTaskWasPaused = false;
-  }
-  else
-  {
-    mainTaskWasPaused = true;
-  }
-
-
-  // Wenn Timer abgelaufen und nicht gerade ein RFID-Tag geschrieben wird
-  if (currentMillis - lastWeightReadTime >= weightReadInterval && nfcReaderState < NFC_WRITING)
-  {
-    lastWeightReadTime = currentMillis;
-
-    // Prüfen ob die Waage korrekt genullt ist
-    // Abweichung von 2g ignorieren
-    if (autoTare && (weight > 2 && weight < 7) || weight < -2)
+  }else{
+    // Ausgabe der Waage auf Display
+    if(pauseMainTask == 0)
     {
-      scale_tare_counter++;
+      if (mainTaskWasPaused || (weight != lastWeight && nfcReaderState == NFC_IDLE && (!bambuCredentials.autosend_enable || autoSetToBambuSpoolId == 0)))
+      {
+        (weight < 2) ? ((weight < -2) ? oledShowMessage("!! -0") : oledShowWeight(0)) : oledShowWeight(weight);
+      }
+      mainTaskWasPaused = false;
     }
     else
     {
-      scale_tare_counter = 0;
+      mainTaskWasPaused = true;
     }
 
-    // Prüfen ob das Gewicht gleich bleibt und dann senden
-    if (abs(weight - lastWeight) <= 2 && weight > 5)
+
+    // Wenn Timer abgelaufen und nicht gerade ein RFID-Tag geschrieben wird
+    if (currentMillis - lastWeightReadTime >= weightReadInterval && nfcReaderState < NFC_WRITING)
     {
-      weigthCouterToApi++;
-    } 
-    else 
+      lastWeightReadTime = currentMillis;
+
+      // Prüfen ob die Waage korrekt genullt ist
+      // Abweichung von 2g ignorieren
+      if (autoTare && (weight > 2 && weight < 7) || weight < -2)
+      {
+        scale_tare_counter++;
+      }
+      else
+      {
+        scale_tare_counter = 0;
+      }
+
+      // Prüfen ob das Gewicht gleich bleibt und dann senden
+      if (abs(weight - lastWeight) <= 2 && weight > 5)
+      {
+        weigthCouterToApi++;
+      } 
+      else 
+      {
+        weigthCouterToApi = 0;
+        weightSend = 0;
+      }
+    }
+
+    // reset weight counter after writing tag
+    // TBD: what exactly is the logic behind this?
+    if (currentMillis - lastWeightReadTime >= weightReadInterval && nfcReaderState != NFC_IDLE && nfcReaderState != NFC_READ_SUCCESS)
     {
       weigthCouterToApi = 0;
-      weightSend = 0;
     }
-  }
+    
+    lastWeight = weight;
 
-  // reset weight counter after writing tag
-  // TBD: what exactly is the logic behind this?
-  if (currentMillis - lastWeightReadTime >= weightReadInterval && nfcReaderState != NFC_IDLE && nfcReaderState != NFC_READ_SUCCESS)
-  {
-    weigthCouterToApi = 0;
-  }
-  
-  lastWeight = weight;
-
-  // Wenn ein Tag mit SM id erkannte wurde und der Waage Counter anspricht an SM Senden
-  if (activeSpoolId != "" && weigthCouterToApi > 3 && weightSend == 0 && nfcReaderState == NFC_READ_SUCCESS && tagProcessed == false && spoolmanApiState == API_IDLE) {
-    // set the current tag as processed to prevent it beeing processed again
-    tagProcessed = true;
-
-    if (updateSpoolWeight(activeSpoolId, weight)) 
+    // Wenn ein Tag mit SM id erkannte wurde und der Waage Counter anspricht an SM Senden
+    if (activeSpoolId != "" && weigthCouterToApi > 3 && weightSend == 0 && nfcReaderState == NFC_READ_SUCCESS && tagProcessed == false && spoolmanApiState == API_IDLE) 
     {
-      weightSend = 1;
-      
-    }
-    else
-    {
-      oledShowIcon("failed");
-      vTaskDelay(2000 / portTICK_PERIOD_MS);
-    }
-  }
+      // set the current tag as processed to prevent it beeing processed again
+      tagProcessed = true;
 
-  if(sendOctoUpdate && spoolmanApiState == API_IDLE){
-    autoSetToBambuSpoolId = activeSpoolId.toInt();
+      if (updateSpoolWeight(activeSpoolId, weight)) 
+      {
+        weightSend = 1;
+        
+        // Set Bambu spool ID for auto-send if enabled
+        if (bambuCredentials.autosend_enable) 
+        {
+          autoSetToBambuSpoolId = activeSpoolId.toInt();
+        }
+      }
+      else
+      {
+        oledShowIcon("failed");
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
+      }
+    }
 
-    if(octoEnabled) 
+    if(octoEnabled && sendOctoUpdate && spoolmanApiState == API_IDLE)
     {
       updateSpoolOcto(autoSetToBambuSpoolId);
+      sendOctoUpdate = false;
     }
-    sendOctoUpdate = false;
   }
   
   esp_task_wdt_reset();

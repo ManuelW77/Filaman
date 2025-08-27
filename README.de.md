@@ -62,7 +62,7 @@ Discord Server: [https://discord.gg/my7Gvaxj2v](https://discord.gg/my7Gvaxj2v)
 - **OLED 0.96 Zoll I2C white/yellow Display:** 128x64 SSD1306.
 [Amazon Link](https://amzn.to/445aaa9)
 - **PN532 NFC NXP RFID-Modul V3:** For NFC tag operations.
-[Amazon Link](https://amzn.to/4iO6CO4)
+[Amazon Link](https://amzn.eu/d/gy9vaBX)
 - **NFC Tags NTAG213 NTAG215:** RFID Tag
 [Amazon Link](https://amzn.to/3E071xO)
 - **TTP223 Touch Sensor (optional):** For reTARE per Button/Touch

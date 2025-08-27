@@ -16,7 +16,6 @@ const uint8_t LOADCELL_DOUT_PIN = 16; //16;
 const uint8_t LOADCELL_SCK_PIN = 17; //17;
 const uint8_t calVal_eepromAdress = 0;
 const uint16_t SCALE_LEVEL_WEIGHT = 500;
-uint16_t defaultScaleCalibrationValue = 430;
 // ***** HX711
 
 // ***** TTP223 (Touch Sensor)

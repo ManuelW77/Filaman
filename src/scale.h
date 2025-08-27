@@ -15,8 +15,9 @@ extern uint8_t weigthCouterToApi;
 extern uint8_t scale_tare_counter;
 extern uint8_t scaleTareRequest;
 extern uint8_t pauseMainTask;
-extern uint8_t scaleCalibrated;
+extern bool scaleCalibrated;
 extern bool autoTare;
+extern bool scaleCalibrationActive;
 
 extern TaskHandle_t ScaleTask;
 

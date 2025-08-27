@@ -7,6 +7,7 @@ let heartbeatTimer = null;
 let lastHeartbeatResponse = Date.now();
 const HEARTBEAT_TIMEOUT = 20000;
 let reconnectTimer = null;
+let spoolDetected = false;
 
 // WebSocket Funktionen
 function startHeartbeat() {
@@ -508,12 +509,15 @@ function updateNfcStatusIndicator(data) {
     if (data.found === 0) {
         // Kein NFC Tag gefunden
         indicator.className = 'status-circle';
+        spoolDetected = false;
     } else if (data.found === 1) {
         // NFC Tag erfolgreich gelesen
         indicator.className = 'status-circle success';
+        spoolDetected = true;
     } else {
         // Fehler beim Lesen
         indicator.className = 'status-circle error';
+        spoolDetected = true;
     }
 }
 
@@ -574,7 +578,7 @@ function updateNfcData(data) {
         `;
 
         // Spoolman ID anzeigen
-        html += `<p><strong>Spoolman ID:</strong> ${data.sm_id || 'No Spoolman ID'}</p>`;
+        html += `<p><strong>Spoolman ID:</strong> ${data.sm_id} (<a href="${spoolmanUrl}/spool/show/${data.sm_id}">Open in Spoolman</a>)</p>`;
      }
      else if(data.location)
      {
@@ -618,78 +622,83 @@ function updateNfcData(data) {
 }
 
 function writeNfcTag() {
-    const selectedText = document.getElementById("selected-filament").textContent;
-    if (selectedText === "Please choose...") {
-        alert('Please select a Spool first.');
-        return;
-    }
+    if(!spoolDetected || confirm("Are you sure you want to overwrite the Tag?") == true){
+        const selectedText = document.getElementById("selected-filament").textContent;
+        if (selectedText === "Please choose...") {
+            alert('Please select a Spool first.');
+            return;
+        }
 
-    const spoolsData = window.getSpoolData();
-    const selectedSpool = spoolsData.find(spool => 
-        `${spool.id} | ${spool.filament.name} (${spool.filament.material})` === selectedText
-    );
+        const spoolsData = window.getSpoolData();
+        const selectedSpool = spoolsData.find(spool => 
+            `${spool.id} | ${spool.filament.name} (${spool.filament.material})` === selectedText
+        );
 
-    if (!selectedSpool) {
-        alert('Ausgewählte Spule konnte nicht gefunden werden.');
-        return;
-    }
+        if (!selectedSpool) {
+            alert('Ausgewählte Spule konnte nicht gefunden werden.');
+            return;
+        }
 
-    // Temperaturwerte korrekt extrahieren
-    let minTemp = "175";
-    let maxTemp = "275";
-    
-    if (Array.isArray(selectedSpool.filament.nozzle_temperature) && 
-        selectedSpool.filament.nozzle_temperature.length >= 2) {
-        minTemp = String(selectedSpool.filament.nozzle_temperature[0]);
-        maxTemp = String(selectedSpool.filament.nozzle_temperature[1]);
-    }
+        // Temperaturwerte korrekt extrahieren
+        let minTemp = "175";
+        let maxTemp = "275";
+        
+        if (Array.isArray(selectedSpool.filament.nozzle_temperature) && 
+            selectedSpool.filament.nozzle_temperature.length >= 2) {
+            minTemp = String(selectedSpool.filament.nozzle_temperature[0]);
+            maxTemp = String(selectedSpool.filament.nozzle_temperature[1]);
+        }
 
-    // Erstelle das NFC-Datenpaket mit korrekten Datentypen
-    const nfcData = {
-        color_hex: selectedSpool.filament.color_hex || "FFFFFF",
-        type: selectedSpool.filament.material,
-        min_temp: minTemp,
-        max_temp: maxTemp,
-        brand: selectedSpool.filament.vendor.name,
-        sm_id: String(selectedSpool.id) // Konvertiere zu String
-    };
+        // Erstelle das NFC-Datenpaket mit korrekten Datentypen
+        const nfcData = {
+            color_hex: selectedSpool.filament.color_hex || "FFFFFF",
+            type: selectedSpool.filament.material,
+            min_temp: minTemp,
+            max_temp: maxTemp,
+            brand: selectedSpool.filament.vendor.name,
+            sm_id: String(selectedSpool.id) // Konvertiere zu String
+        };
 
-    if (socket?.readyState === WebSocket.OPEN) {
-        const writeButton = document.getElementById("writeNfcButton");
-        writeButton.classList.add("writing");
-        writeButton.textContent = "Writing";
-        socket.send(JSON.stringify({
-            type: 'writeNfcTag',
-            tagType: 'spool',
-            payload: nfcData
-        }));
-    } else {
-        alert('Not connected to Server. Please check connection.');
+        if (socket?.readyState === WebSocket.OPEN) {
+            const writeButton = document.getElementById("writeNfcButton");
+            writeButton.classList.add("writing");
+            writeButton.textContent = "Writing";
+            socket.send(JSON.stringify({
+                type: 'writeNfcTag',
+                tagType: 'spool',
+                payload: nfcData
+            }));
+        } else {
+            alert('Not connected to Server. Please check connection.');
+        }
     }
 }
 
 function writeLocationNfcTag() {
-    const selectedText = document.getElementById("locationSelect").value;
-    if (selectedText === "Please choose...") {
-        alert('Please select a location first.');
-        return;
-    }
-    // Erstelle das NFC-Datenpaket mit korrekten Datentypen
-    const nfcData = {
-        location: String(selectedText)
-    };
+    if(!spoolDetected || confirm("Are you sure you want to overwrite the Tag?") == true){
+        const selectedText = document.getElementById("locationSelect").value;
+        if (selectedText === "Please choose...") {
+            alert('Please select a location first.');
+            return;
+        }
+        // Erstelle das NFC-Datenpaket mit korrekten Datentypen
+        const nfcData = {
+            location: String(selectedText)
+        };
 
-    if (socket?.readyState === WebSocket.OPEN) {
-        const writeButton = document.getElementById("writeLocationNfcButton");
-        writeButton.classList.add("writing");
-        writeButton.textContent = "Writing";
-        socket.send(JSON.stringify({
-            type: 'writeNfcTag',
-            tagType: 'location',
-            payload: nfcData
-        }));
-    } else {
-        alert('Not connected to Server. Please check connection.');
+
+        if (socket?.readyState === WebSocket.OPEN) {
+            const writeButton = document.getElementById("writeLocationNfcButton");
+            writeButton.classList.add("writing");
+            writeButton.textContent = "Writing";
+            socket.send(JSON.stringify({
+                type: 'writeNfcTag',
+                tagType: 'location',
+                payload: nfcData
+            }));
+        } else {
+            alert('Not connected to Server. Please check connection.');
+        }
     }
 }
 

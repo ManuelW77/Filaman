@@ -1,5 +1,241 @@
 # Changelog
 
+## [1.5.11] - 2025-08-27
+### Changed
+- update platformio.ini for version v1.5.11
+
+
+## [1.5.10] - 2025-08-27
+### Added
+- improve weight processing logic and add auto-send feature for Bambu spool ID
+- improve weight processing logic and add auto-send feature for Bambu spool ID
+- Adds a link to the spool in spoolman when reading a spool tag
+- Fixes types and some issues in the new graphics
+- Adds ENABLE_HEAP_DEBUGGING define as comment to the build flags
+- Adds data directory and further .vscode files to to .gitignore
+- Introduces new heap debugging feature and fixes some memory leaks in website feature
+- Fixes some issues with the new location tags
+- Adds new feature to write and read location tags
+- Adds slight debouncing to the scale loop weight logic
+- add loadcell desc.
+- implement multi-color filament display and styles for dropdown options
+- add remaining weight logging for PUT requests and improve error reporting in sendToApi function
+- add remaining weight logging and display after successful spool update
+- add weight field to update payload in updateSpoolTagId function
+- add auto-tare functionality and update scale handling based on touch sensor connection
+- add touch sensor connection check and update logic
+- add manual tare functionality for scale
+- add debounce handling for TTP223 touch sensor
+- add TTP223 touch sensor support and wiring configuration
+- Renamed states of NFC state machine and introduced new state machine for spoolman API
+- add forced cache refresh after removing and saving Bambu credentials
+- add functionality to remove Bambu credentials and update API handling
+- add rfid_bambu.html and update bambu connection handling
+- add error handling for missing vendor IDs in filament data
+- add WiFi connection check and restart Bambu if not connected
+- added new .step, now with correct individual parts
+- added changelog
+- Add files via upload
+- added .stp files of modifications
+- added merged picture
+- added pictures of components bought from AliE
+- Add files via upload
+- added pictures for heat insert location
+- added pictures showing heat insert location
+- remove unnecessary delay in MQTT setup and add delay before restart
+- add new 3D print file for Filaman scale
+- added Discord Server
+- add support for Spoolman Octoprint Plugin in README files
+- add OctoPrint integration with configurable fields and update functionality
+- add version comparison function and check for outdated versions before updates
+- remove unused version and protocol fields from JSON output; add error message for insufficient memory
+
+### Changed
+- update platformio.ini for version v1.5.10
+- Merge branch 'main' of https://gitlab.fire-devils.org/3D-Druck/Filaman
+- Changed Amazon Link for PN532
+- Changed Amazon Link for PN532
+- update changelog and header for version v1.5.9
+- update platformio.ini for version v1.5.9
+- Enhance API to support weight updates after successful spool tag updates
+- update changelog and header for version v1.5.8
+- update platformio.ini for version v1.5.8
+- Merge pull request #45 from janecker/nfc_write_improvements
+- Introduces periodic Spoolman Healthcheck
+- Improves init - NFC reading now only starts after boot is finished
+- Further improvements on NFC writing
+- Merge pull request #44 from janecker/graphics_rework
+- Graphic rework of the NFC writing process
+- Remove unused parameter of sendNfcData()
+- Reworks startup graphics and timings
+- update changelog and header for version v1.5.7
+- update platformio.ini for version v1.5.7
+- clean up unused variables and improve .gitignore entries
+- update changelog and header for version v1.5.6
+- update webpages for version v1.5.6
+- update platformio.ini for version v1.5.6
+- Merge pull request #42 from janecker/configuration_nvs_storage
+- Merge branch 'main' into configuration_nvs_storage
+- Changes configuration storage of spoolman and bambu values
+- update changelog and header for version v1.5.5
+- update platformio.ini for version v1.5.5
+- update changelog and header for version v1.5.4
+- update platformio.ini for version v1.5.4
+- Merge branch 'main' of github.com:ManuelW77/Filaman
+- Merge pull request #39 from janecker/location_tags
+- Merge pull request #38 from janecker/scale_debouncing
+- update changelog and header for version v1.5.3
+- update platformio.ini for version v1.5.3
+- Affiliate Links
+- update changelog and header for version v1.5.2
+- update platformio.ini for version v1.5.2
+- update changelog and header for version v1.5.1
+- update version to 1.5.1 and improve OTA update handling with task management
+- update changelog and header for version v1.4.14
+- update platformio.ini for version v1.4.14
+- update changelog and header for version v1.4.13
+- update platformio.ini for version v1.4.13
+- update changelog and header for version v1.4.12
+- update platformio.ini for version v1.4.12
+- update README files to clarify PN532 DIP switch settings
+- update changelog and header for version v1.4.11
+- update platformio.ini for version v1.4.11
+- Merge branch 'main' of github.com:ManuelW77/Filaman
+- update changelog and header for version v1.4.10
+- update platformio.ini for version v1.4.10
+- Merge pull request #31 from janecker/nfc_rework
+- Introducing enum for handling the NFC state to improve code readability
+- update changelog and header for version v1.4.9
+- update platformio.ini for version v1.4.9
+- update changelog and header for version v1.4.8
+- update platformio.ini for version v1.4.8
+- Merge pull request #30 from janecker/main
+- Merge branch 'testing' into main
+- update changelog and header for version v1.4.7
+- update platformio.ini for version v1.4.7
+- Merge branch 'testing'
+- update remove button for Bambu credentials with red background
+- Merge pull request #28 from tugsi/main
+- update changelog and header for version v1.4.6
+- update platformio.ini for version v1.4.6
+- update changelog and header for version v1.4.5
+- update platformio.ini for version v1.4.5
+- Merge branch 'testing'
+- remove unused request_topic subscription and reduce MQTT task stack size
+- Merge pull request #26 from tugsi/main
+- rename report_topic to topic and update MQTT subscription logic, switched publish topic to request
+- update changelog and header for version v1.4.4
+- update platformio.ini for version v1.4.4
+- update changelog and header for version v1.4.3
+- update platformio.ini for version v1.4.3
+- update changelog and header for version v1.4.2
+- update platformio.ini for version v1.4.2
+- increase stack size for BambuMqtt task
+- update Discord Link
+- update Discord Link
+- remove commented-out subscription topic in MQTT setup
+- update changelog and header for version v1.4.1
+- update platformio.ini for version v1.4.1
+- refactor length calculation to convert total length to meters before formatting
+- Merge pull request #16 from spitzbirne32/main
+- improved housing to show display better
+- removed CAD, as they were all duplicates
+- typo in AliE link
+- Delete usermod/spitzbirne32/STL/README.md
+- Update README.md
+- moved pictures of parts into dedicated folders
+- Update README.md
+- Update README.md
+- Update README.md
+- Delete usermod/spitzbirne32/STL/ScaleTop_Heatinsert_Location_usermod_spitzbirne32_.png
+- Delete usermod/spitzbirne32/STL/Housing_Heatinsert_Location_usermod_spitzbirne32_.png
+- created folders
+- Update README.md
+- Update README.md
+- Create README.md
+- Update README.md
+- Update README.md
+- Create README.md
+- Merge pull request #15 from ManuelW77/main
+- Merge pull request #14 from janecker/scale-calibration-rework
+- Reworks the scale calibration handling
+- remove redundant scale calibration checks and enhance task management
+- enhance AMS data handling and streamline spool auto-setting logic
+- adjust stack size and improve scale calibration logic
+- update labels and input types for better clarity and functionality
+- update documentation for clarity and accuracy
+- update changelog and header for version v1.4.0
+- update NFC tag references to include NTAG213 and clarify storage capacity
+- bump version to 1.4.0
+- remove unused version and protocol fields from NFC data packet
+- sort vendors alphabetically in the dropdown list
+- Merge pull request #10 from janecker/nfc-improvements
+
+### Fixed
+- Fixes issue that scale not calibrated message was not shown
+- Improves NFC writing workaround and removes debug output
+- Fixes typos in upgrade page
+- Reworks graphics of tag reading and some api fixes
+- Replaces usage of String with const char* in heap debug function
+- Merge pull request #41 from janecker/memory_leak_fixes
+- Fixes compiler warnings in nfc
+- Memory leak fixes in api and nfc, location tag fix
+- Merge pull request #40 from janecker/location_bambu_fix
+- uncomment monitor_port configuration in platformio.ini
+- update spool weight conditionally based on NFC ID
+- update weight field in update payload to only include values greater than 10
+- increase stack size for sendToApi task to improve stability
+- adjust tare weight tolerance to ignore deviations of 2g
+- improve weight stability check before sending to API
+- update touch sensor connection logic to correctly identify connection status
+- update TTP223 pin configuration and adjust touch sensor logic
+- enhance HTTP method handling in sendToApi function
+- improve HTTP client configuration and clear update documents after API calls
+- Fixes memory leak in HTTPClient by disabling connection reuse
+- update reload logic after removing and saving Bambu credentials for better cache handling
+- handle Bambu connection state by introducing bambuDisabled flag
+- handle potential undefined value for tray_info_idx in handleSpoolIn function, by @tugsi
+- Fix rfid.js-Failure with X1-Series, if you wanna send a Spool to AMS:  - Uncaught TypeError: Cannot read properties of undefined (reading 'replace')     at handleSpoolIn (rfid.js:493:67)     at HTMLButtonElement.onclick ((Index):1:1) handleSpoolIn	@	rfid.js:493 onclick	@	(Index):1
+- increase MQTT buffer size and adjust task stack size
+- Fix BufferSize for larger JSONs from X-Series
+- adjust weight threshold for tare check to allow negative values
+- use unique client ID for MQTT connection to avoid conflicts
+- reload page after firmware update completion
+- increase WiFi connection timeout from 5 to 10 seconds
+- ensure valid URL format and remove trailing slash in setupWebserver
+- correct typo in console log for total length
+
+
+## [1.5.9] - 2025-08-11
+### Changed
+- update platformio.ini for version v1.5.9
+- Enhance API to support weight updates after successful spool tag updates
+
+
+## [1.5.8] - 2025-08-10
+### Added
+- Adds a link to the spool in spoolman when reading a spool tag
+- Fixes types and some issues in the new graphics
+
+### Changed
+- update platformio.ini for version v1.5.8
+- Merge pull request #45 from janecker/nfc_write_improvements
+- Introduces periodic Spoolman Healthcheck
+- Improves init - NFC reading now only starts after boot is finished
+- Further improvements on NFC writing
+- Merge pull request #44 from janecker/graphics_rework
+- Graphic rework of the NFC writing process
+- Remove unused parameter of sendNfcData()
+- Reworks startup graphics and timings
+
+### Fixed
+- Fixes issue that scale not calibrated message was not shown
+- Improves NFC writing workaround and removes debug output
+- Fixes typos in upgrade page
+- Reworks graphics of tag reading and some api fixes
+- Replaces usage of String with const char* in heap debug function
+
+
 ## [1.5.7] - 2025-07-28
 ### Changed
 - update platformio.ini for version v1.5.7

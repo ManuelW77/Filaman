@@ -35,7 +35,7 @@ extern uint16_t foundVendorId;    // ID of found vendor
 extern uint16_t foundFilamentId;  // ID of found filament
 extern bool spoolmanConnected;
 
-bool checkSpoolmanInstance(const String& url);
+bool checkSpoolmanInstance();
 bool saveSpoolmanUrl(const String& url, bool octoOn, const String& octoWh, const String& octoTk);
 String loadSpoolmanUrl(); // Neue Funktion zum Laden der URL
 bool checkSpoolmanExtraFields(); // Neue Funktion zum Überprüfen der Extrafelder

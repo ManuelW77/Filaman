@@ -3,36 +3,39 @@
 
 #include <Arduino.h>
 
-#define BAMBU_DEFAULT_AUTOSEND_TIME 60
+#define BAMBU_DEFAULT_AUTOSEND_TIME         60
 
+#define NVS_NAMESPACE_API                   "api"
+#define NVS_KEY_SPOOLMAN_URL                "spoolmanUrl"
+#define NVS_KEY_OCTOPRINT_ENABLED           "octoEnabled"
+#define NVS_KEY_OCTOPRINT_URL               "octoUrl"
+#define NVS_KEY_OCTOPRINT_TOKEN             "octoToken"
 
-#define NVS_NAMESPACE_API "api"
-#define NVS_KEY_SPOOLMAN_URL "spoolmanUrl"
-#define NVS_KEY_OCTOPRINT_ENABLED "octoEnabled"
-#define NVS_KEY_OCTOPRINT_URL "octoUrl"
-#define NVS_KEY_OCTOPRINT_TOKEN "octoToken"
+#define NVS_NAMESPACE_BAMBU                 "bambu"
+#define NVS_KEY_BAMBU_IP                    "bambuIp"
+#define NVS_KEY_BAMBU_ACCESSCODE            "bambuCode"
+#define NVS_KEY_BAMBU_SERIAL                "bambuSerial"
+#define NVS_KEY_BAMBU_AUTOSEND_ENABLE       "autosendEnable"
+#define NVS_KEY_BAMBU_AUTOSEND_TIME         "autosendTime"
 
-#define NVS_NAMESPACE_BAMBU "bambu"
-#define NVS_KEY_BAMBU_IP "bambuIp"
-#define NVS_KEY_BAMBU_ACCESSCODE "bambuCode"
-#define NVS_KEY_BAMBU_SERIAL "bambuSerial"
-#define NVS_KEY_BAMBU_AUTOSEND_ENABLE "autosendEnable"
-#define NVS_KEY_BAMBU_AUTOSEND_TIME "autosendTime"
+#define NVS_NAMESPACE_SCALE                 "scale"
+#define NVS_KEY_CALIBRATION                 "cal_value"
+#define NVS_KEY_AUTOTARE                    "auto_tare"
+#define SCALE_DEFAULT_CALIBRATION_VALUE     430.0f;
 
-#define NVS_NAMESPACE_SCALE "scale"
-#define NVS_KEY_CALIBRATION "cal_value"
-#define NVS_KEY_AUTOTARE "auto_tare"
+#define BAMBU_USERNAME                      "bblp"
 
-#define BAMBU_USERNAME "bblp"
+#define OLED_RESET                          -1      // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS                      0x3CU   // See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+#define SCREEN_WIDTH                        128U
+#define SCREEN_HEIGHT                       64U
+#define SCREEN_TOP_BAR_HEIGHT               16U
+#define SCREEN_PROGRESS_BAR_HEIGHT          12U
+#define DISPLAY_BOOT_TEXT                   "FilaMan"
 
-#define OLED_RESET                  -1      // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS              0x3CU   // See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
-#define SCREEN_WIDTH                128U
-#define SCREEN_HEIGHT               64U
-#define SCREEN_TOP_BAR_HEIGHT       16U
-#define SCREEN_PROGRESS_BAR_HEIGHT  12U
-#define DISPLAY_BOOT_TEXT           "FilaMan"
-
+#define WIFI_CHECK_INTERVAL                 60000U
+#define DISPLAY_UPDATE_INTERVAL             1000U
+#define SPOOLMAN_HEALTHCHECK_INTERVAL       60000U
 
 extern const uint8_t PN532_IRQ;
 extern const uint8_t PN532_RESET;

@@ -17,8 +17,9 @@ uint8_t weigthCouterToApi = 0;
 uint8_t scale_tare_counter = 0;
 bool scaleTareRequest = false;
 uint8_t pauseMainTask = 0;
-uint8_t scaleCalibrated = 1;
+bool scaleCalibrated;
 bool autoTare = true;
+bool scaleCalibrationActive = false;
 
 // ##### Funktionen für Waage #####
 uint8_t setAutoTare(bool autoTareValue) {
@@ -88,7 +89,13 @@ void start_scale(bool touchSensorConnected) {
   // NVS lesen
   Preferences preferences;
   preferences.begin(NVS_NAMESPACE_SCALE, true); // true = readonly
-  calibrationValue = preferences.getFloat(NVS_KEY_CALIBRATION, defaultScaleCalibrationValue);
+  if(preferences.isKey(NVS_KEY_CALIBRATION)){
+    calibrationValue = preferences.getFloat(NVS_KEY_CALIBRATION);
+    scaleCalibrated = true;
+  }else{
+    calibrationValue = SCALE_DEFAULT_CALIBRATION_VALUE;
+    scaleCalibrated = false;
+  }
   
   // auto Tare
   // Wenn Touch Sensor verbunden, dann autoTare auf false setzen
@@ -102,18 +109,6 @@ void start_scale(bool touchSensorConnected) {
   Serial.println(calibrationValue);
 
   scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
-
-  if (isnan(calibrationValue) || calibrationValue < 1) {
-    calibrationValue = defaultScaleCalibrationValue;
-    scaleCalibrated = 0;
-
-    oledShowMessage("Scale not calibrated!");
-    for (uint16_t i = 0; i < 50000; i++) {
-      yield();
-      vTaskDelay(pdMS_TO_TICKS(1));
-      esp_task_wdt_reset();
-    }
-  }
 
   oledShowProgressBar(6, 7, DISPLAY_BOOT_TEXT, "Tare scale");
   for (uint16_t i = 0; i < 2000; i++) {
@@ -151,6 +146,8 @@ void start_scale(bool touchSensorConnected) {
 uint8_t calibrate_scale() {
   uint8_t returnState = 0;
   float newCalibrationValue;
+
+  scaleCalibrationActive = true;
 
   vTaskSuspend(RfidReaderTask);
   vTaskSuspend(ScaleTask);
@@ -228,6 +225,7 @@ uint8_t calibrate_scale() {
         esp_task_wdt_reset();
       }
 
+      scaleCalibrated = true;
       returnState = 1;
     }
     else
@@ -262,6 +260,7 @@ uint8_t calibrate_scale() {
   vTaskResume(ScaleTask);
   pauseBambuMqttTask = false;
   pauseMainTask = 0;
+  scaleCalibrationActive = false;
 
   return returnState;
 }
