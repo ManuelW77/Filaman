@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.11-beta4] - 2025-08-28
+### Changed
+- update platformio.ini for beta version v1.5.11-beta4
+
+### Fixed
+- remove debug logging from checkSpoolmanInstance function
+
+
 ## [1.5.11-beta3] - 2025-08-28
 ### Added
 - add logging for spoolman status in checkSpoolmanInstance function
