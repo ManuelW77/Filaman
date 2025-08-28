@@ -171,7 +171,9 @@ void loop() {
       oledShowMessage("Scale not calibrated");
       vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
-  }else{
+  } 
+  else 
+  {
     // Ausgabe der Waage auf Display
     if(pauseMainTask == 0)
     {
