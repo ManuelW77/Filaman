@@ -33,6 +33,7 @@ AMSData ams_data[MAX_AMS];  // Definition des Arrays;
 bool removeBambuCredentials() {
     if (BambuMqttTask) {
         vTaskDelete(BambuMqttTask);
+        BambuMqttTask = NULL;
     }
     
     Preferences preferences;
@@ -63,6 +64,7 @@ bool removeBambuCredentials() {
 bool saveBambuCredentials(const String& ip, const String& serialnr, const String& accesscode, bool autoSend, const String& autoSendTime) {
     if (BambuMqttTask) {
         vTaskDelete(BambuMqttTask);
+        BambuMqttTask = NULL;
     }
 
     bambuCredentials.ip = ip.c_str();
@@ -593,6 +595,7 @@ void reconnect() {
                 Serial.println("Disable Bambu MQTT Task after 5 retries");
                 //vTaskSuspend(BambuMqttTask);
                 vTaskDelete(BambuMqttTask);
+                BambuMqttTask = NULL;
                 break;
             }
 
@@ -681,6 +684,7 @@ void bambu_restart() {
 
     if (BambuMqttTask) {
         vTaskDelete(BambuMqttTask);
+        BambuMqttTask = NULL;
         delay(10);
     }
     setupMqtt();

@@ -5,8 +5,21 @@
 #include <Preferences.h>
 #include "debug.h"
 #include "scale.h"
-
+#include <time.h>
 volatile spoolmanApiStateType spoolmanApiState = API_IDLE;
+
+// Returns current date and time in ISO8601 format
+String getCurrentDateISO8601() {
+    struct tm timeinfo;
+    if(!getLocalTime(&timeinfo)) {
+        Serial.println("Failed to obtain time");
+        return "1970-01-01T00:00:00Z";
+    }
+    char timeStringBuff[25];
+    strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%dT%H:%M:%SZ", &timeinfo);
+    return String(timeStringBuff);
+}
+
 //bool spoolman_connected = false;
 String spoolmanUrl = "";
 bool octoEnabled = false;
@@ -17,6 +30,8 @@ uint16_t remainingWeight = 0;
 uint16_t createdVendorId = 0;  // Store ID of newly created vendor
 uint16_t foundVendorId = 0;    // Store ID of found vendor
 uint16_t foundFilamentId = 0;  // Store ID of found filament
+uint16_t createdFilamentId = 0;  // Store ID of newly created filament
+uint16_t createdSpoolId = 0;  // Store ID of newly created spool
 bool spoolmanConnected = false;
 bool spoolmanExtraFieldsChecked = false;
 TaskHandle_t* apiTask;
@@ -199,6 +214,20 @@ void sendToApi(void *parameter) {
                     Serial.println(foundFilamentId);
                 }
                 break;
+            case API_REQUEST_FILAMENT_CREATE:
+                Serial.println("Filament successfully created!");
+                createdFilamentId = doc["id"].as<uint16_t>();
+                Serial.print("Created Filament ID: ");
+                Serial.println(createdFilamentId);
+                oledShowProgressBar(1, 1, "Filament", "Created!");
+                break;
+            case API_REQUEST_SPOOL_CREATE:
+                Serial.println("Spool successfully created!");
+                createdSpoolId = doc["id"].as<uint16_t>();
+                Serial.print("Created Spool ID: ");
+                Serial.println(createdSpoolId);
+                oledShowProgressBar(1, 1, "Spool", "Created!");
+                break;
             }
         }
         doc.clear();
@@ -220,6 +249,20 @@ void sendToApi(void *parameter) {
                 Serial.print("Created Vendor ID: ");
                 Serial.println(createdVendorId);
                 oledShowProgressBar(1, 1, "Vendor", "Created!");
+                break;
+            case API_REQUEST_FILAMENT_CREATE:
+                Serial.println("Filament successfully created!");
+                createdFilamentId = doc["id"].as<uint16_t>();
+                Serial.print("Created Filament ID: ");
+                Serial.println(createdFilamentId);
+                oledShowProgressBar(1, 1, "Filament", "Created!");
+                break;
+            case API_REQUEST_SPOOL_CREATE:
+                Serial.println("Spool successfully created!");
+                createdSpoolId = doc["id"].as<uint16_t>();
+                Serial.print("Created Spool ID: ");
+                Serial.println(createdSpoolId);
+                oledShowProgressBar(1, 1, "Spool", "Created!");
                 break;
             default:
                 // Handle other create operations if needed
@@ -293,6 +336,12 @@ void sendToApi(void *parameter) {
             break;
         case API_REQUEST_VENDOR_CREATE:
             oledShowProgressBar(1, 1, "Failure!", "Vendor create");
+            break;
+        case API_REQUEST_FILAMENT_CREATE:
+            oledShowProgressBar(1, 1, "Failure!", "Filament create");
+            break;
+        case API_REQUEST_SPOOL_CREATE:
+            oledShowProgressBar(1, 1, "Failure!", "Spool create");
             break;
         }
         Serial.println("Fehler beim Senden an Spoolman! HTTP Code: " + String(httpCode));
@@ -563,67 +612,7 @@ bool updateSpoolBambuData(String payload) {
     return true;
 }
 
-// #### Filament Fabrik
-uint16_t checkVendor(String vendor) {
-    // Check if vendor exists using task system
-    foundVendorId = 0; // Reset previous value
-    
-    String spoolsUrl = spoolmanUrl + apiUrl + "/vendor?name=" + vendor;
-    Serial.print("Check vendor with URL: ");
-    Serial.println(spoolsUrl);
-
-    SendToApiParams* params = new SendToApiParams();
-    if (params == nullptr) {
-        Serial.println("Fehler: Kann Speicher für Task-Parameter nicht allokieren.");
-        return 0;
-    }
-    params->requestType = API_REQUEST_VENDOR_CHECK;
-    params->httpType = "GET";
-    params->spoolsUrl = spoolsUrl;
-    params->updatePayload = ""; // Empty for GET request
-
-    // Check if API is idle before creating task
-    if(spoolmanApiState == API_IDLE){
-        // Erstelle die Task
-        BaseType_t result = xTaskCreate(
-            sendToApi,                // Task-Funktion
-            "SendToApiTask",          // Task-Name
-            6144,                     // Stackgröße in Bytes
-            (void*)params,            // Parameter
-            0,                        // Priorität
-            NULL                      // Task-Handle (nicht benötigt)
-        );
-    } else {
-        Serial.println("Not spawning new task, API still active!");
-        delete params;
-        return 0;
-    }
-    
-    // Wait for task completion
-    while(spoolmanApiState != API_IDLE) {
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-    }
-
-    // Check if vendor was found
-    if (foundVendorId == 0) {
-        Serial.println("Vendor not found, creating new vendor...");
-        uint16_t vendorId = createVendor(vendor);
-        if (vendorId == 0) {
-            Serial.println("Failed to create vendor, returning 0.");
-            return 0; // Failed to create vendor
-        } else {
-            Serial.println("Vendor created with ID: " + String(vendorId));
-            checkFilament(vendorId);
-            return vendorId;
-        }
-    } else {
-        Serial.println("Vendor found: " + vendor);
-        Serial.print("Vendor ID: ");
-        Serial.println(foundVendorId);
-        return foundVendorId;
-    }
-}
-
+// #### Brand Filament
 uint16_t createVendor(String vendor) {
     // Create new vendor in Spoolman database using task system
     // Note: Due to async nature, the ID will be stored in createdVendorId global variable
@@ -685,11 +674,148 @@ uint16_t createVendor(String vendor) {
     return createdVendorId;
 }
 
-uint16_t checkFilament(uint16_t vendorId) {
+uint16_t checkVendor(String vendor) {
+    // Check if vendor exists using task system
+    foundVendorId = 0; // Reset previous value
+    
+    String spoolsUrl = spoolmanUrl + apiUrl + "/vendor?name=" + vendor;
+    Serial.print("Check vendor with URL: ");
+    Serial.println(spoolsUrl);
+
+    SendToApiParams* params = new SendToApiParams();
+    if (params == nullptr) {
+        Serial.println("Fehler: Kann Speicher für Task-Parameter nicht allokieren.");
+        return 0;
+    }
+    params->requestType = API_REQUEST_VENDOR_CHECK;
+    params->httpType = "GET";
+    params->spoolsUrl = spoolsUrl;
+    params->updatePayload = ""; // Empty for GET request
+
+    // Check if API is idle before creating task
+    if(spoolmanApiState == API_IDLE){
+        // Erstelle die Task
+        BaseType_t result = xTaskCreate(
+            sendToApi,                // Task-Funktion
+            "SendToApiTask",          // Task-Name
+            6144,                     // Stackgröße in Bytes
+            (void*)params,            // Parameter
+            0,                        // Priorität
+            NULL                      // Task-Handle (nicht benötigt)
+        );
+    } else {
+        Serial.println("Not spawning new task, API still active!");
+        delete params;
+        return 0;
+    }
+    
+    // Wait for task completion
+    while(spoolmanApiState != API_IDLE) {
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+
+    // Check if vendor was found
+    if (foundVendorId == 0) {
+        Serial.println("Vendor not found, creating new vendor...");
+        uint16_t vendorId = createVendor(vendor);
+        if (vendorId == 0) {
+            Serial.println("Failed to create vendor, returning 0.");
+            return 0; // Failed to create vendor
+        } else {
+            Serial.println("Vendor created with ID: " + String(vendorId));
+            return vendorId;
+        }
+    } else {
+        Serial.println("Vendor found: " + vendor);
+        Serial.print("Vendor ID: ");
+        Serial.println(foundVendorId);
+        return foundVendorId;
+    }
+}
+
+uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
+    // Create new filament in Spoolman database using task system
+    // Note: Due to async nature, the ID will be stored in createdFilamentId global variable
+    createdFilamentId = 0; // Reset previous value
+    
+    String spoolsUrl = spoolmanUrl + apiUrl + "/filament";
+    Serial.print("Create filament with URL: ");
+    Serial.println(spoolsUrl);
+
+    // Create JSON payload for filament creation
+    JsonDocument filamentDoc;
+    filamentDoc["name"] = payload["name"].as<String>();
+    filamentDoc["vendor_id"] = String(vendorId);
+    filamentDoc["material"] = payload["type"].as<String>();
+    filamentDoc["density"] = (payload["density"].is<String>() && payload["density"].as<String>().length() > 0) ? payload["density"].as<String>() : "1.24";
+    filamentDoc["diameter"] = (payload["diameter"].is<String>() && payload["diameter"].as<String>().length() > 0) ? payload["diameter"].as<String>() : "1.75";
+    filamentDoc["weight"] = payload["weight"].as<String>();
+    filamentDoc["spool_weight"] = payload["spool_weight"].as<String>();
+    filamentDoc["article_number"] = payload["artnr"].as<String>();
+    filamentDoc["comment"] = String("automatically generated");
+    filamentDoc["extruder_temp"] = payload["extruder_temp"].is<String>() ? payload["extruder_temp"].as<String>() : "";
+    filamentDoc["bed_temp"] = payload["bed_temp"].is<String>() ? payload["bed_temp"].as<String>() : "";
+    filamentDoc["external_id"] = payload["artnr"].as<String>();
+
+    if (payload["multi_color_hexes"].is<String>()) {
+        filamentDoc["multi_color_hexes"] = payload["multi_color_hexes"].as<String>();
+        filamentDoc["multi_color_direction"] = payload["multi_color_direction"].is<String>() ? payload["multi_color_direction"].as<String>() : "";
+    }
+    else
+    {
+        filamentDoc["color_hex"] = (payload["color"].is<String>() && payload["color"].as<String>().length() >= 6) ? payload["color"].as<String>() : "FFFFFF";
+    }
+
+    String filamentPayload;
+    serializeJson(filamentDoc, filamentPayload);
+    Serial.print("Filament Payload: ");
+    Serial.println(filamentPayload);
+
+    SendToApiParams* params = new SendToApiParams();
+    if (params == nullptr) {
+        Serial.println("Fehler: Kann Speicher für Task-Parameter nicht allokieren.");
+        filamentDoc.clear();
+        return 0;
+    }
+    params->requestType = API_REQUEST_FILAMENT_CREATE;
+    params->httpType = "POST";
+    params->spoolsUrl = spoolsUrl;
+    params->updatePayload = filamentPayload;
+
+    // Check if API is idle before creating task
+    if(spoolmanApiState == API_IDLE){
+        // Erstelle die Task
+        BaseType_t result = xTaskCreate(
+            sendToApi,                // Task-Funktion
+            "SendToApiTask",          // Task-Name
+            6144,                     // Stackgröße in Bytes
+            (void*)params,            // Parameter
+            0,                        // Priorität
+            NULL                      // Task-Handle (nicht benötigt)
+        );
+    } else {
+        Serial.println("Not spawning new task, API still active!");
+        delete params;
+        filamentDoc.clear();
+        return 0;
+    }
+
+    filamentDoc.clear();
+    
+    // Wait for task completion and return the created filament ID
+    // Note: createdFilamentId will be set by sendToApi when response is received
+    while(spoolmanApiState != API_IDLE) {
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+    
+    return createdFilamentId;
+}
+
+uint16_t checkFilament(uint16_t vendorId, const JsonDocument& payload) {
     // Check if filament exists using task system
     foundFilamentId = 0; // Reset previous value
-    
-    String spoolsUrl = spoolmanUrl + apiUrl + "/filament?vendor.id=" + String(vendorId);
+
+    String spoolsUrl = spoolmanUrl + apiUrl + "/filament?vendor.id=" + String(vendorId) + "&external_id=" + String(payload["artnr"].as<String>());
     Serial.print("Check filament with URL: ");
     Serial.println(spoolsUrl);
 
@@ -728,13 +854,12 @@ uint16_t checkFilament(uint16_t vendorId) {
     // Check if filament was found
     if (foundFilamentId == 0) {
         Serial.println("Filament not found, creating new filament...");
-        uint16_t filamentId = createFilament();
+        uint16_t filamentId = createFilament(vendorId, payload);
         if (filamentId == 0) {
             Serial.println("Failed to create filament, returning 0.");
             return 0; // Failed to create filament
         } else {
             Serial.println("Filament created with ID: " + String(filamentId));
-            checkSpool();
             return filamentId;
         }
     } else {
@@ -745,54 +870,101 @@ uint16_t checkFilament(uint16_t vendorId) {
     }
 }
 
-bool createFilament() {
-    // {
-    //     "name": "PolyTerra Charcoal Black",
-    //     "vendor_id": 0,
-    //     "material": "PLA",
-    //     "price": 20,
-    //     "density": 1.24,
-    //     "diameter": 1.75,
-    //     "weight": 1000,
-    //     "spool_weight": 140,
-    //     "article_number": "PM70820",
-    //     "comment": "automatically generated",
-    //     "settings_extruder_temp": 210,
-    //     "settings_bed_temp": 60,
-    //     "color_hex": "FF0000",
-    //     "multi_color_hexes": "FF0000,00FF00,0000FF",
-    //     "multi_color_direction": "coaxial",
-    //     "external_id": "polymaker_pla_polysonicblack_1000_175",
-    //     "extra": {
-    //         "nozzle_temperature": "string"
-    //     }
-    // }
+uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& payload, String uidString) {
+    // Create new spool in Spoolman database using task system
+    // Note: Due to async nature, the ID will be stored in createdSpoolId global variable
+    createdSpoolId = 0; // Reset previous value
+    
+    String spoolsUrl = spoolmanUrl + apiUrl + "/spool";
+    Serial.print("Create spool with URL: ");
+    Serial.println(spoolsUrl);
+    String currentDate = getCurrentDateISO8601();
 
+    // Create JSON payload for spool creation
+    JsonDocument spoolDoc;
+    spoolDoc["first_used"] = String(currentDate);
+    spoolDoc["last_used"] = String(currentDate);
+    spoolDoc["filament_id"] = String(filamentId);
+    spoolDoc["initial_weight"] = weight > 10 ? String(weight) : "1000";
+    spoolDoc["spool_weight"] = (payload["spool_weight"].is<String>() && payload["spool_weight"].as<String>().length() > 0) ? payload["spool_weight"].as<String>() : "180";
+    spoolDoc["remaining_weight"] = (payload["weight"].is<String>() && payload["weight"].as<String>().length() > 0) ? payload["weight"].as<String>() : "1000";
+    spoolDoc["used_weight"] = "0";
+    spoolDoc["lot_nr"] = (payload["lotnr"].is<String>() && payload["lotnr"].as<String>().length() > 0) ? payload["lotnr"].as<String>() : "";
+    spoolDoc["comment"] = "automatically generated";
+    spoolDoc["extra"]["nfc_id"] = "\"" + uidString + "\"";
+
+    String spoolPayload;
+    serializeJson(spoolDoc, spoolPayload);
+    Serial.print("Spool Payload: ");
+    Serial.println(spoolPayload);
+    spoolDoc.clear();
+
+    SendToApiParams* params = new SendToApiParams();
+    if (params == nullptr) {
+        Serial.println("Fehler: Kann Speicher für Task-Parameter nicht allokieren.");
+        spoolDoc.clear();
+        return 0;
+    }
+    params->requestType = API_REQUEST_SPOOL_CREATE;
+    params->httpType = "POST";
+    params->spoolsUrl = spoolsUrl;
+    params->updatePayload = spoolPayload;
+
+    // Check if API is idle before creating task
+    if(spoolmanApiState == API_IDLE){
+        // Erstelle die Task
+        BaseType_t result = xTaskCreate(
+            sendToApi,                // Task-Funktion
+            "SendToApiTask",          // Task-Name
+            6144,                     // Stackgröße in Bytes
+            (void*)params,            // Parameter
+            0,                        // Priorität
+            NULL                      // Task-Handle (nicht benötigt)
+        );
+    } else {
+        Serial.println("Not spawning new task, API still active!");
+        delete params;
+        return 0;
+    }
+    
+    // Wait for task completion and return the created spool ID
+    // Note: createdSpoolId will be set by sendToApi when response is received
+    while(spoolmanApiState != API_IDLE) {
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+
+    // daten mit startWriteJsonToTag schreiben
+    // void startWriteJsonToTag(const bool isSpoolTag, const char* payload);
+    payload["sm_id"].set(String(createdSpoolId));
+    
+    String payloadString;
+    serializeJson(payload, payloadString);
+    startWriteJsonToTag(true, payloadString.c_str());
+
+    return createdSpoolId;
 }
 
-uint16_t checkSpool() {
-
-}
-
-bool createSpool() {
-    // Implement specific handling for Spool creation
-    // {
-    //     "first_used": "2019-08-24T14:15:22Z",
-    //     "last_used": "2019-08-24T14:15:22Z",
-    //     "filament_id": 0,
-    //     "price": 20,
-    //     "initial_weight": 200,
-    //     "spool_weight": 200,
-    //     "remaining_weight": 800,
-    //     "used_weight": 200,
-    //     "location": "Shelf A",
-    //     "lot_nr": "52342",
-    //     "comment": "",
-    //     "archived": false,
-    //     "extra": {
-    //         "nfc_id": "string"
-    //     }
-    // }
+bool createBrandFilament(JsonDocument& payload, String uidString) {
+    uint16_t vendorId = checkVendor(payload["brand"].as<String>());
+    if (vendorId == 0) {
+        Serial.println("ERROR: Failed to create/find vendor");
+        return false;
+    }
+    
+    uint16_t filamentId = checkFilament(vendorId, payload);
+    if (filamentId == 0) {
+        Serial.println("ERROR: Failed to create/find filament");
+        return false;
+    }
+    
+    uint16_t spoolId = createSpool(vendorId, filamentId, payload, uidString);
+    if (spoolId == 0) {
+        Serial.println("ERROR: Failed to create spool");
+        return false;
+    }
+    
+    Serial.println("SUCCESS: Brand filament created with Spool ID: " + String(spoolId));
+    return true;
 }
 
 // #### Spoolman init

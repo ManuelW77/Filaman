@@ -39,12 +39,6 @@ volatile nfcReaderStateType nfcReaderState = NFC_IDLE;
 // 6 = reading
 // ***** PN532
 
-
-// ##### Recycling Fabrik #####
-bool isRecyclingFabrik(const char* brand) {
-    return strcmp(brand, "Recycling Fabrik") == 0;
-}
-
 // ##### Funktionen für RFID #####
 void payloadToJson(uint8_t *data) {
     const char* startJson = strchr((char*)data, '{');
@@ -65,12 +59,6 @@ void payloadToJson(uint8_t *data) {
         int min_temp = doc["min_temp"];
         int max_temp = doc["max_temp"];
         const char* brand = doc["brand"];
-
-        // Recycling Fabrik
-        if (isRecyclingFabrik(brand)) {
-          // TODO: Implement specific handling for Recycling Fabrik
-          Serial.println("Recycling Fabrik erkannt.");
-        }
 
         Serial.println();
         Serial.println("-----------------");
@@ -215,7 +203,7 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
   return 1;
 }
 
-bool decodeNdefAndReturnJson(const byte* encodedMessage) {
+bool decodeNdefAndReturnJson(const byte* encodedMessage, String uidString) {
   oledShowProgressBar(1, octoEnabled?5:4, "Reading", "Decoding data");
 
   byte typeLength = encodedMessage[3];
@@ -266,12 +254,15 @@ bool decodeNdefAndReturnJson(const byte* encodedMessage) {
           oledShowProgressBar(1, 1, "Failure", "Scan spool first");
         }
       }
-      // Recycling Fabrik
-      else if (isRecyclingFabrik(doc["type"].as<String>().c_str())) {
-        // If no sm_id is present but the brand is Recycling Fabrik then
+      // Brand Filament not registered to Spoolman
+      else if ((!doc["sm_id"].is<String>() || (doc["sm_id"].is<String>() && (doc["sm_id"] == "0" || doc["sm_id"] == "")))
+              && doc["brand"].is<String>() && doc["artnr"].is<String>())
+      {
+        doc["sm_id"] = "0"; // Ensure sm_id is set to 0
+        // If no sm_id is present but the brand is Brand Filament then
         // create a new spool, maybe brand too, in Spoolman
-        Serial.println("Recycling Fabrik Tag found!");
-        createFilamentFabrik(doc);
+        Serial.println("New Brand Filament Tag found!");
+        createBrandFilament(doc, uidString);
       }
       else 
       {
@@ -393,6 +384,9 @@ void writeJsonToTag(void *parameter) {
   nfcReadingTaskSuspendRequest = false;
   pauseBambuMqttTask = false;
 
+  free(params->payload);
+  delete params;
+
   vTaskDelete(NULL);
 }
 
@@ -450,6 +444,16 @@ void scanRfidTask(void * parameter) {
         oledShowProgressBar(0, octoEnabled?5:4, "Reading", "Detecting tag");
 
         //vTaskDelay(500 / portTICK_PERIOD_MS);
+
+        // create Tag UID string
+        String uidString = "";
+        for (uint8_t i = 0; i < uidLength; i++) {
+          //TBD: Rework to remove all the string operations
+          uidString += String(uid[i], HEX);
+          if (i < uidLength - 1) {
+              uidString += ":"; // Optional: Trennzeichen hinzufügen
+          }
+        }
         
         if (uidLength == 7)
         {
@@ -480,7 +484,7 @@ void scanRfidTask(void * parameter) {
               vTaskDelay(pdMS_TO_TICKS(1));
             }
 
-            if (!decodeNdefAndReturnJson(data)) 
+            if (!decodeNdefAndReturnJson(data, uidString)) 
             {
               oledShowProgressBar(1, 1, "Failure", "Unknown tag");
               nfcReaderState = NFC_READ_ERROR;
