@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.11-beta2] - 2025-08-28
+### Added
+- add logging for healthy spoolman instance check
+
+### Changed
+- update platformio.ini for beta version v1.5.11-beta2
+
+
 ## [1.5.11-beta1] - 2025-08-28
 ### Changed
 - update platformio.ini for beta version v1.5.11-beta1
