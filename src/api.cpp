@@ -1004,9 +1004,10 @@ bool checkSpoolmanInstance() {
             Serial.println("Error contacting spoolman instance! HTTP Code: " + String(httpCode));
         }
         http.end();
-        returnValue = false;
         spoolmanApiState = API_IDLE;
-    }else{
+    }
+    else
+    {
         // If the check is skipped, return the previous status
         Serial.println("Skipping spoolman healthcheck, API is active.");
         returnValue = spoolmanConnected;

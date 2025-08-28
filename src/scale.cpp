@@ -48,6 +48,8 @@ void scale_loop(void * parameter) {
   Serial.println("Scale Loop started");
   Serial.println("++++++++++++++++++++++++++++++");
 
+  scale.tare();
+
   for(;;) {
     if (scale.is_ready()) 
     {
@@ -120,7 +122,7 @@ void start_scale(bool touchSensorConnected) {
   if (scale.wait_ready_timeout(1000))
   {
     scale.set_scale(calibrationValue); // this value is obtained by calibrating the scale with known weights; see the README for details
-    scale.tare();
+    //scale.tare();
   }
 
   // Display Gewicht
