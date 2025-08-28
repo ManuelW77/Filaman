@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.5.12-beta1] - 2025-08-28
+### Added
+- implement filament and spool creation in Spoolman API
+- Add JSON structure comments for filament and spool creation
+- Add vendor and filament management to API; implement recycling factory handling in NFC
+
+### Changed
+- update platformio.ini for beta version v1.5.12-beta1
+- Merge branch 'main' into recyclingfabrik
+- Merge branch 'main' into recyclingfabrik
+
+
 ## [1.5.12] - 2025-08-28
 ### Added
 - add numbering to update sections in upgrade.html refactor: improve readability of checkSpoolmanInstance function
