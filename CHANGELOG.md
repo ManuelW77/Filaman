@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.12] - 2025-08-28
+### Added
+- add numbering to update sections in upgrade.html refactor: improve readability of checkSpoolmanInstance function
+
+### Changed
+- update platformio.ini for version v1.5.12
+- clean up library dependencies in platformio.ini
+
+
 ## [1.5.11-beta4] - 2025-08-28
 ### Changed
 - update platformio.ini for beta version v1.5.11-beta4
