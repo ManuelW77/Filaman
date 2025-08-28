@@ -700,6 +700,8 @@ bool checkSpoolmanInstance() {
                     oledShowTopRow();
                     spoolmanConnected = true;
                     returnValue = strcmp(status, "healthy") == 0;
+                    Serial.print("Spoolman instance is healthy: ");
+                    Serial.println(returnValue);
                 }else{
                     spoolmanConnected = false;
                 }
