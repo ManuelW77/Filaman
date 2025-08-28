@@ -685,8 +685,6 @@ bool checkSpoolmanInstance() {
                 if (!error && doc["status"].is<String>()) {
                     const char* status = doc["status"];
                     http.end();
-                    Serial.print("Spoolman status: ");
-                    Serial.println(status);
 
                     if (!checkSpoolmanExtraFields()) {
                         Serial.println("Fehler beim Überprüfen der Extrafelder.");
@@ -702,8 +700,6 @@ bool checkSpoolmanInstance() {
                     oledShowTopRow();
                     spoolmanConnected = true;
                     returnValue = strcmp(status, "healthy") == 0;
-                    Serial.print("Spoolman instance is healthy: ");
-                    Serial.println(returnValue);
                 }else{
                     spoolmanConnected = false;
                 }
@@ -717,7 +713,6 @@ bool checkSpoolmanInstance() {
             Serial.println("Error contacting spoolman instance! HTTP Code: " + String(httpCode));
         }
         http.end();
-        returnValue = false;
         spoolmanApiState = API_IDLE;
     }else{
         // If the check is skipped, return the previous status
