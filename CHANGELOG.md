@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.11-beta1] - 2025-08-28
+### Changed
+- update platformio.ini for beta version v1.5.11-beta1
+
+### Fixed
+- adjust spacing in loop structure and enable tare function in scale loop
+
+
 ## [1.5.11] - 2025-08-27
 ### Changed
 - update platformio.ini for version v1.5.11
