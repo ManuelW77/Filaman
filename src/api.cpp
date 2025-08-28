@@ -685,6 +685,8 @@ bool checkSpoolmanInstance() {
                 if (!error && doc["status"].is<String>()) {
                     const char* status = doc["status"];
                     http.end();
+                    Serial.print("Spoolman status: ");
+                    Serial.println(status);
 
                     if (!checkSpoolmanExtraFields()) {
                         Serial.println("Fehler beim Überprüfen der Extrafelder.");
