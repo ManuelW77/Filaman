@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.5.12-beta17] - 2025-08-29
+### Added
+- add progress bar updates for vendor and filament creation processes
+
+### Changed
+- update platformio.ini for beta version v1.5.12-beta17
+- optimize page limit detection and remove redundant verification code
+
+### Fixed
+- update vendor check to use shorthand key in payload
+
+
 ## [1.5.12-beta16] - 2025-08-29
 ### Changed
 - update platformio.ini for beta version v1.5.12-beta16
