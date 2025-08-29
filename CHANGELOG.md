@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.12-beta16] - 2025-08-29
+### Changed
+- update platformio.ini for beta version v1.5.12-beta16
+- Refactor NFC interface handling and improve error diagnostics
+
+
 ## [1.5.12-beta15] - 2025-08-29
 ### Changed
 - update platformio.ini for beta version v1.5.12-beta15
