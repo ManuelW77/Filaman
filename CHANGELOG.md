@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.12-beta4] - 2025-08-29
+### Added
+- enhance NDEF decoding to validate structure and extract JSON payload
+
+### Changed
+- update platformio.ini for beta version v1.5.12-beta4
+
+
 ## [1.5.12-beta3] - 2025-08-29
 ### Added
 - add logging for decoded JSON data in NFC processing
