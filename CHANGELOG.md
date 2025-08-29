@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.0-beta1] - 2025-08-29
+### Changed
+- update platformio.ini for beta version v2.0.0-beta1
+- update version to 2.0.0 in platformio.ini
+
+
 ## [1.5.12-beta18] - 2025-08-29
 ### Added
 - add display delay for vendor, filament, and spool creation processes
