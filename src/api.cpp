@@ -618,7 +618,7 @@ uint16_t createVendor(String vendor) {
     // Create new vendor in Spoolman database using task system
     // Note: Due to async nature, the ID will be stored in createdVendorId global variable
     // Note: This function assumes that the caller has already ensured API is IDLE
-    createdVendorId = 0; // Reset previous value
+    createdVendorId = 65535; // Reset previous value
     
     String spoolsUrl = spoolmanUrl + apiUrl + "/vendor";
     Serial.print("Create vendor with URL: ");
@@ -668,8 +668,8 @@ uint16_t createVendor(String vendor) {
     
     // Wait for task completion and return the created vendor ID
     // Note: createdVendorId will be set by sendToApi when response is received
-    while(spoolmanApiState != API_IDLE) {
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+    while(createdVendorId == 65535) {
+        vTaskDelay(50 / portTICK_PERIOD_MS);
     }
     
     return createdVendorId;
