@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.12-beta13] - 2025-08-29
+### Changed
+- update platformio.ini for beta version v1.5.12-beta13
+- reorganize clearUserDataArea function for improved clarity and safety
+
+
 ## [1.5.12-beta12] - 2025-08-29
 ### Changed
 - update platformio.ini for beta version v1.5.12-beta12
