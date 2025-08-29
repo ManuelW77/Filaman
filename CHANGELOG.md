@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.12-beta7] - 2025-08-29
+### Changed
+- update platformio.ini for beta version v1.5.12-beta7
+
+### Fixed
+- improve API state handling and vendor name formatting
+
+
 ## [1.5.12-beta6] - 2025-08-29
 ### Changed
 - update platformio.ini for beta version v1.5.12-beta6
