@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.12-beta11] - 2025-08-29
+### Changed
+- update platformio.ini for beta version v1.5.12-beta11
+
+### Fixed
+- update spoolman ID reset values to 65535 for better API response detection
+
+
 ## [1.5.12-beta10] - 2025-08-29
 ### Changed
 - update platformio.ini for beta version v1.5.12-beta10
