@@ -602,6 +602,8 @@ bool updateSpoolBambuData(String payload) {
 
 // #### Brand Filament
 uint16_t createVendor(String vendor) {
+    oledShowProgressBar(2, 5, "New Brand", "Create new Vendor");
+
     // Create new vendor in Spoolman database using task system
     // Note: Due to async nature, the ID will be stored in createdVendorId global variable
     // Note: This function assumes that the caller has already ensured API is IDLE
@@ -662,6 +664,8 @@ uint16_t createVendor(String vendor) {
 }
 
 uint16_t checkVendor(String vendor) {
+    oledShowProgressBar(1, 5, "New Brand", "Check Vendor");
+
     // Check if vendor exists using task system
     foundVendorId = 65535; // Reset to invalid value to detect when API response is received
     
@@ -724,6 +728,8 @@ uint16_t checkVendor(String vendor) {
 }
 
 uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
+    oledShowProgressBar(4, 5, "New Brand", "Create Filament");
+
     // Create new filament in Spoolman database using task system
     // Note: Due to async nature, the ID will be stored in createdFilamentId global variable
     // Note: This function assumes that the caller has already ensured API is IDLE
@@ -810,6 +816,8 @@ uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
 }
 
 uint16_t checkFilament(uint16_t vendorId, const JsonDocument& payload) {
+    oledShowProgressBar(3, 5, "New Brand", "Check Filament");
+
     // Check if filament exists using task system
     foundFilamentId = 65535; // Reset to invalid value to detect when API response is received
 
@@ -862,6 +870,8 @@ uint16_t checkFilament(uint16_t vendorId, const JsonDocument& payload) {
 }
 
 uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& payload, String uidString) {
+    oledShowProgressBar(5, 5, "New Brand", "Create new Spool");
+
     // Create new spool in Spoolman database using task system
     // Note: Due to async nature, the ID will be stored in createdSpoolId global variable
     // Note: This function assumes that the caller has already ensured API is IDLE

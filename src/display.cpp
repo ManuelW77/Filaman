@@ -235,7 +235,7 @@ void oledShowIcon(const char* icon) {
     display.display();
 }
 
-void oledShowProgressBar(const uint8_t step, const uint8_t numSteps, const char* largeText, const char* statusMessage){
+void oledShowProgressBar(const uint8_t step, const uint8_t numSteps, const char* largeText, const char* statusMessage) {
     assert(step <= numSteps);
 
     // clear data and bar area
