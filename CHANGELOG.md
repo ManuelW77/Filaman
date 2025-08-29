@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.12-beta2] - 2025-08-29
+### Changed
+- update platformio.ini for beta version v1.5.12-beta2
+
+### Fixed
+- enhance filament creation logic to include dynamic comments based on payload
+
+
 ## [1.5.12-beta1] - 2025-08-28
 ### Added
 - implement filament and spool creation in Spoolman API
