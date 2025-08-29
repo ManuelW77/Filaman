@@ -411,14 +411,54 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
 
   // STEP 1: Read current tag content for debugging
   Serial.println();
-  Serial.println("=== SCHRITT 1: AKTUELLER TAG-INHALT ===");
-  uint8_t currentContent[64]; // Read first 16 pages
-  memset(currentContent, 0, 64);
+  Serial.println("=== SCHRITT 1: NFC-INTERFACE-DIAGNOSE ===");
   
+  // First, check if the NFC interface is working at all
+  Serial.println("Teste NFC-Interface-Zustand...");
+  
+  // Try to read capability container (which worked during detection)
+  uint8_t ccTest[4];
+  bool ccReadable = nfc.ntag2xx_ReadPage(3, ccTest);
+  Serial.print("Capability Container (Seite 3) lesbar: ");
+  Serial.println(ccReadable ? "✓" : "❌");
+  
+  if (ccReadable) {
+    Serial.print("CC Inhalt: ");
+    for (int i = 0; i < 4; i++) {
+      if (ccTest[i] < 0x10) Serial.print("0");
+      Serial.print(ccTest[i], HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
+  }
+  
+  // Test a few different pages to see which ones are accessible
+  uint8_t testData[4];
+  for (uint8_t testPage = 0; testPage <= 10; testPage++) {
+    bool readable = nfc.ntag2xx_ReadPage(testPage, testData);
+    Serial.print("Seite ");
+    Serial.print(testPage);
+    Serial.print(": ");
+    if (readable) {
+      Serial.print("✓ - ");
+      for (int i = 0; i < 4; i++) {
+        if (testData[i] < 0x10) Serial.print("0");
+        Serial.print(testData[i], HEX);
+        Serial.print(" ");
+      }
+      Serial.println();
+    } else {
+      Serial.println("❌ - Nicht lesbar");
+    }
+    vTaskDelay(10 / portTICK_PERIOD_MS); // Small delay between reads
+  }
+  
+  Serial.println("=== SCHRITT 2: AKTUELLER TAG-INHALT ===");
+  
+  // Only read user data pages that are confirmed to be readable
   for (uint8_t page = 4; page < 20; page++) {
     uint8_t pageData[4];
     if (nfc.ntag2xx_ReadPage(page, pageData)) {
-      memcpy(&currentContent[(page-4)*4], pageData, 4);
       Serial.print("Seite ");
       Serial.print(page);
       Serial.print(": ");
@@ -431,19 +471,82 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
     } else {
       Serial.print("Fehler beim Lesen von Seite ");
       Serial.println(page);
+      // If we can't read basic user data pages, there's a fundamental problem
+      if (page <= 6) {
+        Serial.println("KRITISCHER FEHLER: Kann grundlegende User-Data-Seiten nicht lesen!");
+        Serial.println("Möglicherweise NFC-Interface-Problem oder Tag-Zustandsproblem");
+        return 0;
+      }
     }
+    vTaskDelay(10 / portTICK_PERIOD_MS); // Small delay between reads
   }
   Serial.println("=========================================");
 
-  // STEP 2: Simple write test - write one test page
   Serial.println();
-  Serial.println("=== SCHRITT 2: SCHREIBTEST ===");
+  Serial.println("=== SCHRITT 3: SCHREIBTEST ===");
+  Serial.println();
+  Serial.println("=== SCHRITT 3: SCHREIBTEST ===");
+  
+  // If basic pages are not readable, try to reinitialize NFC interface
+  Serial.println("Versuche NFC-Interface zu stabilisieren...");
+  
+  // Give the NFC interface time to stabilize
+  vTaskDelay(100 / portTICK_PERIOD_MS);
+  
+  // Try to reestablish communication
+  bool interfaceOk = false;
+  for (int retry = 0; retry < 3; retry++) {
+    Serial.print("NFC-Interface Test ");
+    Serial.print(retry + 1);
+    Serial.print("/3... ");
+    
+    uint8_t ccRetest[4];
+    if (nfc.ntag2xx_ReadPage(3, ccRetest)) {
+      Serial.println("✓");
+      interfaceOk = true;
+      break;
+    } else {
+      Serial.println("❌");
+      vTaskDelay(200 / portTICK_PERIOD_MS);
+    }
+  }
+  
+  if (!interfaceOk) {
+    Serial.println("FEHLER: NFC-Interface nicht stabil - Schreibvorgang abgebrochen");
+    oledShowMessage("NFC Interface Error");
+    vTaskDelay(3000 / portTICK_PERIOD_MS);
+    return 0;
+  }
+  
+  Serial.println("NFC-Interface ist stabil - fahre mit Schreibtest fort");
+  
   uint8_t testPage[4] = {0xAA, 0xBB, 0xCC, 0xDD}; // Test pattern
   
   if (!nfc.ntag2xx_WritePage(10, testPage)) { // Use page 10 for test
     Serial.println("FEHLER: Einfacher Schreibtest fehlgeschlagen!");
     Serial.println("Tag ist möglicherweise schreibgeschützt oder defekt");
-    oledShowMessage("Tag write protected?");
+    
+    // Additional diagnostics
+    Serial.println("=== ERWEITERTE DIAGNOSE ===");
+    
+    // Check if this is a timing issue
+    Serial.println("Teste Tag-Erkennung erneut...");
+    uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };
+    uint8_t uidLength;
+    bool tagStillPresent = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 1000);
+    Serial.print("Tag noch erkannt: ");
+    Serial.println(tagStillPresent ? "✓" : "❌");
+    
+    if (!tagStillPresent) {
+      Serial.println("URSACHE: Tag wurde während Schreibvorgang entfernt!");
+      oledShowMessage("Tag removed during write");
+    } else {
+      Serial.println("URSACHE: Tag ist vorhanden aber nicht beschreibbar");
+      Serial.println("Möglicherweise: Schreibschutz, Defekt, oder Timing-Problem");
+      oledShowMessage("Tag write protected?");
+    }
+    Serial.println("===============================");
+    
     vTaskDelay(3000 / portTICK_PERIOD_MS);
     return 0;
   }
@@ -1146,16 +1249,11 @@ void writeJsonToTag(void *parameter) {
   Serial.println(params->payload);
 
   nfcReaderState = NFC_WRITING;
-  nfcWriteInProgress = true; // Block all tag operations during write
+  nfcWriteInProgress = true; // Block high-level tag operations during write
 
-  // Suspend reading task during writing to prevent interference
-  // But keep low-level NFC operations available for verification
-  nfcReadingTaskSuspendRequest = true;
-  while(nfcReadingTaskSuspendState == false){
-    vTaskDelay(100 / portTICK_PERIOD_MS);
-  }
-  
-  Serial.println("NFC Write Task starting - All tag operations blocked during write");
+  // Do NOT suspend the reading task - we need NFC interface for verification
+  // Just use nfcWriteInProgress to prevent scanning and fast-path operations
+  Serial.println("NFC Write Task starting - High-level operations blocked, low-level NFC available");
 
   //pauseBambuMqttTask = true;
   // aktualisieren der Website wenn sich der Status ändert
@@ -1243,8 +1341,8 @@ void writeJsonToTag(void *parameter) {
   sendWriteResult(nullptr, success);
   sendNfcData();
 
-  nfcReadingTaskSuspendRequest = false;
-  nfcWriteInProgress = false; // Re-enable tag operations
+  // Only reset the write protection flag - reading task was never suspended
+  nfcWriteInProgress = false; // Re-enable high-level tag operations
   pauseBambuMqttTask = false;
 
   free(params->payload);
@@ -1279,8 +1377,8 @@ void startWriteJsonToTag(const bool isSpoolTag, const char* payload) {
 void scanRfidTask(void * parameter) {
   Serial.println("RFID Task gestartet");
   for(;;) {
-    // Wenn geschrieben wird Schleife aussetzen
-    if (nfcReaderState != NFC_WRITING && !nfcReadingTaskSuspendRequest && !booting)
+    // Skip scanning during write operations, but keep NFC interface active
+    if (nfcReaderState != NFC_WRITING && !nfcWriteInProgress && !nfcReadingTaskSuspendRequest && !booting)
     {
       nfcReadingTaskSuspendState = false;
       yield();
@@ -1425,8 +1523,17 @@ void scanRfidTask(void * parameter) {
     else
     {
       nfcReadingTaskSuspendState = true;
-      Serial.println("NFC Reading disabled");
-      vTaskDelay(1000 / portTICK_PERIOD_MS);
+      
+      // Different behavior for write protection vs. full suspension
+      if (nfcWriteInProgress) {
+        // During write: Just pause scanning, don't disable NFC interface
+        // Serial.println("NFC Scanning paused during write operation");
+        vTaskDelay(100 / portTICK_PERIOD_MS); // Shorter delay during write
+      } else {
+        // Full suspension requested
+        Serial.println("NFC Reading disabled");
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+      }
     }
     yield();
   }
