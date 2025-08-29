@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.12-beta5] - 2025-08-29
+### Added
+- enhance NDEF decoding with detailed validation and debugging output
+
+### Changed
+- update platformio.ini for beta version v1.5.12-beta5
+
+
 ## [1.5.12-beta4] - 2025-08-29
 ### Added
 - enhance NDEF decoding to validate structure and extract JSON payload
