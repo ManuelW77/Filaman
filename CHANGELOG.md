@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.12-beta14] - 2025-08-29
+### Changed
+- update platformio.ini for beta version v1.5.12-beta14
+- optimize JSON payload structure and enhance NFC tag validation process
+
+
 ## [1.5.12-beta13] - 2025-08-29
 ### Changed
 - update platformio.ini for beta version v1.5.12-beta13
