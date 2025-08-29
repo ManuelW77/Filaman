@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.0-beta3] - 2025-08-29
+### Changed
+- update platformio.ini for beta version v2.0.0-beta3
+- update createVendor and checkVendor functions to accept JsonDocument payload
+
+
 ## [2.0.0-beta2] - 2025-08-29
 ### Added
 - add Manufacturer Tags support documentation in German and English
