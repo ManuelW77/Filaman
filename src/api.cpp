@@ -121,7 +121,7 @@ void sendToApi(void *parameter) {
 
     // Wait until API is IDLE
     while(spoolmanApiState != API_IDLE){
-        Serial.println("Waiting!");
+        vTaskDelay(100 / portTICK_PERIOD_MS);
         yield();
     }
     spoolmanApiState = API_TRANSMITTING;
@@ -678,7 +678,10 @@ uint16_t checkVendor(String vendor) {
     // Check if vendor exists using task system
     foundVendorId = 0; // Reset previous value
     
-    String spoolsUrl = spoolmanUrl + apiUrl + "/vendor?name=" + vendor;
+    String vendorName = vendor;
+    vendorName.trim();
+    vendorName.replace(" ", "+");
+    String spoolsUrl = spoolmanUrl + apiUrl + "/vendor?name=" + vendorName;
     Serial.print("Check vendor with URL: ");
     Serial.println(spoolsUrl);
 
@@ -750,7 +753,7 @@ uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
     filamentDoc["material"] = payload["type"].as<String>();
     filamentDoc["density"] = (payload["density"].is<String>() && payload["density"].as<String>().length() > 0) ? payload["density"].as<String>() : "1.24";
     filamentDoc["diameter"] = (payload["diameter"].is<String>() && payload["diameter"].as<String>().length() > 0) ? payload["diameter"].as<String>() : "1.75";
-    filamentDoc["weight"] = payload["weight"].as<String>();
+    filamentDoc["weight"] = String(weight);
     filamentDoc["spool_weight"] = payload["spool_weight"].as<String>();
     filamentDoc["article_number"] = payload["artnr"].as<String>();
     filamentDoc["extruder_temp"] = payload["extruder_temp"].is<String>() ? payload["extruder_temp"].as<String>() : "";
