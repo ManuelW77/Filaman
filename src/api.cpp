@@ -955,7 +955,7 @@ uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& paylo
 }
 
 bool createBrandFilament(JsonDocument& payload, String uidString) {
-    uint16_t vendorId = checkVendor(payload["brand"].as<String>());
+    uint16_t vendorId = checkVendor(payload["b"].as<String>());
     if (vendorId == 0) {
         Serial.println("ERROR: Failed to create/find vendor");
         return false;
