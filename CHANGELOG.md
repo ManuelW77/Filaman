@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.12-beta6] - 2025-08-29
+### Changed
+- update platformio.ini for beta version v1.5.12-beta6
+- improve task synchronization in vendor, filament, and spool creation functions
+
+
 ## [1.5.12-beta5] - 2025-08-29
 ### Added
 - enhance NDEF decoding with detailed validation and debugging output
