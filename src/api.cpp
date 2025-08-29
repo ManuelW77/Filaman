@@ -618,7 +618,6 @@ uint16_t createVendor(const JsonDocument& payload) {
     // Create JSON payload for vendor creation
     JsonDocument vendorDoc;
     vendorDoc["name"] = payload["b"].as<String>();
-    vendorDoc["comment"] = "automatically generated";
     
     // Extract domain from URL if present, otherwise use brand name
     String externalId = "";
@@ -635,7 +634,7 @@ uint16_t createVendor(const JsonDocument& payload) {
     } else {
         externalId = payload["b"].as<String>();
     }
-    vendorDoc["external_id"] = externalId;
+    vendorDoc["comment"] = externalId;
 
     String vendorPayload;
     serializeJson(vendorDoc, vendorPayload);
