@@ -27,6 +27,7 @@ Discord Server: [https://discord.gg/my7Gvaxj2v](https://discord.gg/my7Gvaxj2v)
     - Filamentdaten auf NFC-Tags schreiben.
     - Verwendet das NFC-Tag-Format von [Openspool](https://github.com/spuder/OpenSpool)
     - Ermöglicht automatische Spulenerkennung im AMS
+    - **Hersteller Tag Unterstützung:** Automatische Erstellung von Spoolman-Einträgen aus Hersteller NFC-Tags ([Mehr erfahren](README_ManufacturerTags_DE.md))
 - **Bambulab AMS-Integration:** 
   - Anzeige der aktuellen AMS-Fachbelegung.
   - Zuordnung von Filamenten zu AMS-Slots.
@@ -39,7 +40,34 @@ Discord Server: [https://discord.gg/my7Gvaxj2v](https://discord.gg/my7Gvaxj2v)
   - Unterstützt das Spoolman Octoprint Plugin
 
 ### Wenn Sie meine Arbeit unterstützen möchten, freue ich mich über einen Kaffee
+
 <a href="https://www.buymeacoffee.com/manuelw" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 30px !important;width: 108px !important;" ></a>
+
+## Hersteller Tags Unterstützung
+
+🎉 **Aufregende Neuigkeiten!** FilaMan unterstützt jetzt **Hersteller Tags** - NFC-Tags, die direkt von Filament-Herstellern vorprogrammiert geliefert werden!
+
+### Erster Hersteller-Partner: RecyclingFabrik
+
+Wir freuen uns anzukündigen, dass [**RecyclingFabrik**](https://www.recyclingfabrik.de) der **erste Filament-Hersteller** sein wird, der FilaMan unterstützt, indem sie NFC-Tags im FilaMan-Format auf ihren Spulen anbieten!
+
+**Demnächst verfügbar:** RecyclingFabrik-Spulen werden NFC-Tags enthalten, die sich automatisch in Ihr FilaMan-System integrieren, manuelle Einrichtung überflüssig machen und perfekte Kompatibilität gewährleisten.
+
+### Wie Hersteller Tags funktionieren
+
+Wenn Sie zum ersten Mal einen Hersteller NFC-Tag scannen:
+1. **Automatische Markenerkennung:** FilaMan erkennt den Hersteller und erstellt die Marke in Spoolman
+2. **Filament-Typ Erstellung:** Alle Materialspezifikationen werden automatisch hinzugefügt
+3. **Spulen-Registrierung:** Ihre spezifische Spule wird mit korrektem Gewicht und Spezifikationen registriert
+4. **Zukünftige Schnellerkennung:** Nachfolgende Scans verwenden Fast-Path-Erkennung für sofortige Gewichtsmessung
+
+**Für detaillierte technische Informationen:** [Hersteller Tags Dokumentation](README_ManufacturerTags_DE.md)
+
+### Vorteile für Benutzer
+- ✅ **Null manuelle Einrichtung** - Einfach scannen und wiegen
+- ✅ **Perfekte Datengenauigkeit** - Hersteller-verifizierte Spezifikationen
+- ✅ **Sofortige Integration** - Nahtlose Spoolman-Kompatibilität
+- ✅ **Zukunftssicher** - Tags funktionieren mit jedem FilaMan-kompatiblen System
 
 ## Detaillierte Funktionalität
 

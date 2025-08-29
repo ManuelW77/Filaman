@@ -31,6 +31,7 @@ Discord Server: [https://discord.gg/my7Gvaxj2v](https://discord.gg/my7Gvaxj2v)
 	- Write filament data to NFC tags.
 	- uses NFC-Tag Format of [Openspool](https://github.com/spuder/OpenSpool)
 	- so you can use it with automatic Spool detection in AMS
+	- **Manufacturer Tag Support:** Automatic creation of Spoolman entries from manufacturer NFC tags ([Learn more](README_ManufacturerTags_EN.md))
 - **Bambulab AMS Integration:** 
   - Display current AMS tray contents.
   - Assign filaments to AMS slots.
@@ -43,7 +44,34 @@ Discord Server: [https://discord.gg/my7Gvaxj2v](https://discord.gg/my7Gvaxj2v)
   - Supports Spoolman Octoprint Plugin
 
 ### If you want to support my work, i would be happy to get a coffe
+
 <a href="https://www.buymeacoffee.com/manuelw" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 30px !important;width: 108px !important;" ></a>
+
+## Manufacturer Tags Support
+
+🎉 **Exciting News!** FilaMan now supports **Manufacturer Tags** - NFC tags that come pre-programmed directly from filament manufacturers!
+
+### First Manufacturer Partner: RecyclingFabrik
+
+We're thrilled to announce that [**RecyclingFabrik**](https://www.recyclingfabrik.de) will be the **first filament manufacturer** to support FilaMan by offering NFC tags in the FilaMan format on their spools!
+
+**Coming Soon:** RecyclingFabrik spools will include NFC tags that automatically integrate with your FilaMan system, eliminating manual setup and ensuring perfect compatibility.
+
+### How Manufacturer Tags Work
+
+When you scan a manufacturer NFC tag for the first time:
+1. **Automatic Brand Detection:** FilaMan recognizes the manufacturer and creates the brand in Spoolman
+2. **Filament Type Creation:** All material specifications are automatically added
+3. **Spool Registration:** Your specific spool is registered with proper weight and specifications
+4. **Future Fast Recognition:** Subsequent scans use fast-path detection for instant weight measurement
+
+**For detailed technical information:** [Manufacturer Tags Documentation](README_ManufacturerTags_EN.md)
+
+### Benefits for Users
+- ✅ **Zero Manual Setup** - Just scan and weigh
+- ✅ **Perfect Data Accuracy** - Manufacturer-verified specifications
+- ✅ **Instant Integration** - Seamless Spoolman compatibility
+- ✅ **Future-Proof** - Tags work with any FilaMan-compatible system
 
 ## Detailed Functionality
 
