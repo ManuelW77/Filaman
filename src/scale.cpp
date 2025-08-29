@@ -48,8 +48,10 @@ void scale_loop(void * parameter) {
   Serial.println("Scale Loop started");
   Serial.println("++++++++++++++++++++++++++++++");
 
+  vTaskDelay(pdMS_TO_TICKS(500));
   scale.tare();
-
+  vTaskDelay(pdMS_TO_TICKS(500));
+  
   for(;;) {
     if (scale.is_ready()) 
     {

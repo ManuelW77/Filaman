@@ -616,6 +616,7 @@ bool updateSpoolBambuData(String payload) {
 uint16_t createVendor(String vendor) {
     // Create new vendor in Spoolman database using task system
     // Note: Due to async nature, the ID will be stored in createdVendorId global variable
+    // Note: This function assumes that the caller has already ensured API is IDLE
     createdVendorId = 0; // Reset previous value
     
     String spoolsUrl = spoolmanUrl + apiUrl + "/vendor";
@@ -645,19 +646,18 @@ uint16_t createVendor(String vendor) {
     params->spoolsUrl = spoolsUrl;
     params->updatePayload = vendorPayload;
 
-    // Check if API is idle before creating task
-    if(spoolmanApiState == API_IDLE){
-        // Erstelle die Task
-        BaseType_t result = xTaskCreate(
-            sendToApi,                // Task-Funktion
-            "SendToApiTask",          // Task-Name
-            6144,                     // Stackgröße in Bytes
-            (void*)params,            // Parameter
-            0,                        // Priorität
-            NULL                      // Task-Handle (nicht benötigt)
-        );
-    } else {
-        Serial.println("Not spawning new task, API still active!");
+    // Create task without additional API state check since caller ensures synchronization
+    BaseType_t result = xTaskCreate(
+        sendToApi,                // Task-Funktion
+        "SendToApiTask",          // Task-Name
+        6144,                     // Stackgröße in Bytes
+        (void*)params,            // Parameter
+        0,                        // Priorität
+        NULL                      // Task-Handle (nicht benötigt)
+    );
+
+    if (result != pdPASS) {
+        Serial.println("Failed to create vendor task!");
         delete params;
         vendorDoc.clear();
         return 0;
@@ -736,6 +736,7 @@ uint16_t checkVendor(String vendor) {
 uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
     // Create new filament in Spoolman database using task system
     // Note: Due to async nature, the ID will be stored in createdFilamentId global variable
+    // Note: This function assumes that the caller has already ensured API is IDLE
     createdFilamentId = 0; // Reset previous value
     
     String spoolsUrl = spoolmanUrl + apiUrl + "/filament";
@@ -790,19 +791,18 @@ uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
     params->spoolsUrl = spoolsUrl;
     params->updatePayload = filamentPayload;
 
-    // Check if API is idle before creating task
-    if(spoolmanApiState == API_IDLE){
-        // Erstelle die Task
-        BaseType_t result = xTaskCreate(
-            sendToApi,                // Task-Funktion
-            "SendToApiTask",          // Task-Name
-            6144,                     // Stackgröße in Bytes
-            (void*)params,            // Parameter
-            0,                        // Priorität
-            NULL                      // Task-Handle (nicht benötigt)
-        );
-    } else {
-        Serial.println("Not spawning new task, API still active!");
+    // Create task without additional API state check since caller ensures synchronization
+    BaseType_t result = xTaskCreate(
+        sendToApi,                // Task-Funktion
+        "SendToApiTask",          // Task-Name
+        6144,                     // Stackgröße in Bytes
+        (void*)params,            // Parameter
+        0,                        // Priorität
+        NULL                      // Task-Handle (nicht benötigt)
+    );
+
+    if (result != pdPASS) {
+        Serial.println("Failed to create filament task!");
         delete params;
         filamentDoc.clear();
         return 0;
@@ -881,6 +881,7 @@ uint16_t checkFilament(uint16_t vendorId, const JsonDocument& payload) {
 uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& payload, String uidString) {
     // Create new spool in Spoolman database using task system
     // Note: Due to async nature, the ID will be stored in createdSpoolId global variable
+    // Note: This function assumes that the caller has already ensured API is IDLE
     createdSpoolId = 0; // Reset previous value
     
     String spoolsUrl = spoolmanUrl + apiUrl + "/spool";
@@ -918,19 +919,18 @@ uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& paylo
     params->spoolsUrl = spoolsUrl;
     params->updatePayload = spoolPayload;
 
-    // Check if API is idle before creating task
-    if(spoolmanApiState == API_IDLE){
-        // Erstelle die Task
-        BaseType_t result = xTaskCreate(
-            sendToApi,                // Task-Funktion
-            "SendToApiTask",          // Task-Name
-            6144,                     // Stackgröße in Bytes
-            (void*)params,            // Parameter
-            0,                        // Priorität
-            NULL                      // Task-Handle (nicht benötigt)
-        );
-    } else {
-        Serial.println("Not spawning new task, API still active!");
+    // Create task without additional API state check since caller ensures synchronization
+    BaseType_t result = xTaskCreate(
+        sendToApi,                // Task-Funktion
+        "SendToApiTask",          // Task-Name
+        6144,                     // Stackgröße in Bytes
+        (void*)params,            // Parameter
+        0,                        // Priorität
+        NULL                      // Task-Handle (nicht benötigt)
+    );
+
+    if (result != pdPASS) {
+        Serial.println("Failed to create spool task!");
         delete params;
         return 0;
     }
@@ -941,7 +941,7 @@ uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& paylo
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 
-    // daten mit startWriteJsonToTag schreiben
+    // Write data to tag with startWriteJsonToTag
     // void startWriteJsonToTag(const bool isSpoolTag, const char* payload);
     payload["sm_id"].set(String(createdSpoolId));
     
