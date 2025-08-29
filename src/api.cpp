@@ -716,6 +716,9 @@ uint16_t checkVendor(String vendor) {
     while(spoolmanApiState != API_IDLE) {
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
+    
+    // Additional delay to ensure foundVendorId is properly set after API state becomes IDLE
+    vTaskDelay(50 / portTICK_PERIOD_MS);
 
     // Check if vendor was found
     if (foundVendorId == 0) {
@@ -748,7 +751,7 @@ uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
 
     // Create JSON payload for filament creation
     JsonDocument filamentDoc;
-    filamentDoc["name"] = payload["name"].as<String>();
+    filamentDoc["name"] = payload["color_name"].as<String>();
     filamentDoc["vendor_id"] = String(vendorId);
     filamentDoc["material"] = payload["type"].as<String>();
     filamentDoc["density"] = (payload["density"].is<String>() && payload["density"].as<String>().length() > 0) ? payload["density"].as<String>() : "1.24";
@@ -861,6 +864,9 @@ uint16_t checkFilament(uint16_t vendorId, const JsonDocument& payload) {
     while(spoolmanApiState != API_IDLE) {
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
+    
+    // Additional delay to ensure foundFilamentId is properly set after API state becomes IDLE
+    vTaskDelay(50 / portTICK_PERIOD_MS);
 
     // Check if filament was found
     if (foundFilamentId == 0) {
