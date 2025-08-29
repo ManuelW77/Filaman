@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.12-beta9] - 2025-08-29
+### Added
+- update vendor and filament ID handling to use NULL and add delays for stability
+
+### Changed
+- update platformio.ini for beta version v1.5.12-beta9
+
+
 ## [1.5.12-beta8] - 2025-08-29
 ### Added
 - add delay to ensure proper setting of vendor and filament IDs after API state changes
