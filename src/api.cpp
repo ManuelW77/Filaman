@@ -676,7 +676,7 @@ uint16_t createVendor(String vendor) {
 
 uint16_t checkVendor(String vendor) {
     // Check if vendor exists using task system
-    foundVendorId = 0; // Reset previous value
+    foundVendorId = NULL; // Reset previous value
     
     String vendorName = vendor;
     vendorName.trim();
@@ -696,7 +696,13 @@ uint16_t checkVendor(String vendor) {
     params->updatePayload = ""; // Empty for GET request
 
     // Check if API is idle before creating task
-    if(spoolmanApiState == API_IDLE){
+    while (spoolmanApiState != API_IDLE)
+    {
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+    
+
+    if(spoolmanApiState == API_IDLE) {
         // Erstelle die Task
         BaseType_t result = xTaskCreate(
             sendToApi,                // Task-Funktion
@@ -718,7 +724,10 @@ uint16_t checkVendor(String vendor) {
     }
     
     // Additional delay to ensure foundVendorId is properly set after API state becomes IDLE
-    vTaskDelay(50 / portTICK_PERIOD_MS);
+    while (foundVendorId == NULL)
+    {
+        vTaskDelay(50 / portTICK_PERIOD_MS);
+    }
 
     // Check if vendor was found
     if (foundVendorId == 0) {
@@ -827,7 +836,7 @@ uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
 
 uint16_t checkFilament(uint16_t vendorId, const JsonDocument& payload) {
     // Check if filament exists using task system
-    foundFilamentId = 0; // Reset previous value
+    foundFilamentId = NULL; // Reset previous value
 
     String spoolsUrl = spoolmanUrl + apiUrl + "/filament?vendor.id=" + String(vendorId) + "&external_id=" + String(payload["artnr"].as<String>());
     Serial.print("Check filament with URL: ");
@@ -844,7 +853,7 @@ uint16_t checkFilament(uint16_t vendorId, const JsonDocument& payload) {
     params->updatePayload = ""; // Empty for GET request
 
     // Check if API is idle before creating task
-    if(spoolmanApiState == API_IDLE){
+    //if(spoolmanApiState == API_IDLE){
         // Erstelle die Task
         BaseType_t result = xTaskCreate(
             sendToApi,                // Task-Funktion
@@ -854,11 +863,11 @@ uint16_t checkFilament(uint16_t vendorId, const JsonDocument& payload) {
             0,                        // Priorität
             NULL                      // Task-Handle (nicht benötigt)
         );
-    } else {
-        Serial.println("Not spawning new task, API still active!");
-        delete params;
-        return 0;
-    }
+    //} else {
+    //    Serial.println("Not spawning new task, API still active!");
+    //    delete params;
+    //    return 0;
+    //}
     
     // Wait for task completion
     while(spoolmanApiState != API_IDLE) {
@@ -866,7 +875,9 @@ uint16_t checkFilament(uint16_t vendorId, const JsonDocument& payload) {
     }
     
     // Additional delay to ensure foundFilamentId is properly set after API state becomes IDLE
-    vTaskDelay(50 / portTICK_PERIOD_MS);
+    while (foundFilamentId == NULL) {
+        vTaskDelay(50 / portTICK_PERIOD_MS);
+    }
 
     // Check if filament was found
     if (foundFilamentId == 0) {
@@ -891,22 +902,21 @@ uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& paylo
     // Create new spool in Spoolman database using task system
     // Note: Due to async nature, the ID will be stored in createdSpoolId global variable
     // Note: This function assumes that the caller has already ensured API is IDLE
-    createdSpoolId = 0; // Reset previous value
+    createdSpoolId = NULL; // Reset previous value
     
     String spoolsUrl = spoolmanUrl + apiUrl + "/spool";
     Serial.print("Create spool with URL: ");
     Serial.println(spoolsUrl);
-    String currentDate = getCurrentDateISO8601();
+    //String currentDate = getCurrentDateISO8601();
 
     // Create JSON payload for spool creation
     JsonDocument spoolDoc;
     //spoolDoc["first_used"] = String(currentDate);
     //spoolDoc["last_used"] = String(currentDate);
     spoolDoc["filament_id"] = String(filamentId);
-    spoolDoc["initial_weight"] = weight > 10 ? String(weight) : "1000";
+    spoolDoc["initial_weight"] = weight > 10 ? String(weight-payload["spool_weight"].as<int>()) : "1000";
     spoolDoc["spool_weight"] = (payload["spool_weight"].is<String>() && payload["spool_weight"].as<String>().length() > 0) ? payload["spool_weight"].as<String>() : "180";
     spoolDoc["remaining_weight"] = (payload["weight"].is<String>() && payload["weight"].as<String>().length() > 0) ? payload["weight"].as<String>() : "1000";
-    spoolDoc["used_weight"] = "0";
     spoolDoc["lot_nr"] = (payload["lotnr"].is<String>() && payload["lotnr"].as<String>().length() > 0) ? payload["lotnr"].as<String>() : "";
     spoolDoc["comment"] = "automatically generated";
     spoolDoc["extra"]["nfc_id"] = "\"" + uidString + "\"";
@@ -946,8 +956,8 @@ uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& paylo
     
     // Wait for task completion and return the created spool ID
     // Note: createdSpoolId will be set by sendToApi when response is received
-    while(spoolmanApiState != API_IDLE) {
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+    while(createdSpoolId == NULL) {
+        vTaskDelay(50 / portTICK_PERIOD_MS);
     }
 
     // Write data to tag with startWriteJsonToTag
@@ -956,6 +966,9 @@ uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& paylo
     
     String payloadString;
     serializeJson(payload, payloadString);
+    
+    nfcReaderState = NFC_IDLE;
+    vTaskDelay(50 / portTICK_PERIOD_MS);
     startWriteJsonToTag(true, payloadString.c_str());
 
     return createdSpoolId;

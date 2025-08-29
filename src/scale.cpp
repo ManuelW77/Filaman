@@ -49,8 +49,7 @@ void scale_loop(void * parameter) {
   Serial.println("++++++++++++++++++++++++++++++");
 
   vTaskDelay(pdMS_TO_TICKS(500));
-  scale.tare();
-  vTaskDelay(pdMS_TO_TICKS(500));
+  scale_tare_counter = 10; // damit beim Starten der Waage automatisch getart wird
   
   for(;;) {
     if (scale.is_ready()) 

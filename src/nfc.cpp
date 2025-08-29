@@ -364,8 +364,20 @@ bool decodeNdefAndReturnJson(const byte* encodedMessage, String uidString) {
 
   Serial.print("Actual JSON length extracted: ");
   Serial.println(actualJsonLength);
-  Serial.println("Decoded JSON Data:");
+  Serial.print("Total nfcJsonData length: ");
+  Serial.println(nfcJsonData.length());
+  Serial.println("=== DECODED JSON DATA START ===");
   Serial.println(nfcJsonData);
+  Serial.println("=== DECODED JSON DATA END ===");
+  
+  // Check if JSON was truncated
+  if (nfcJsonData.length() < payloadLength && !nfcJsonData.endsWith("}")) {
+    Serial.println("WARNING: JSON payload appears to be truncated!");
+    Serial.print("Expected payload length: ");
+    Serial.println(payloadLength);
+    Serial.print("Actual extracted length: ");
+    Serial.println(nfcJsonData.length());
+  }
   
   // Trim any trailing whitespace or invalid characters
   nfcJsonData.trim();
@@ -597,7 +609,9 @@ void scanRfidTask(void * parameter) {
 
         oledShowProgressBar(0, octoEnabled?5:4, "Reading", "Detecting tag");
 
-        //vTaskDelay(500 / portTICK_PERIOD_MS);
+        // Wait 1 second after tag detection to stabilize connection
+        Serial.println("Tag detected, waiting 1 second for stabilization...");
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
 
         // create Tag UID string
         String uidString = "";
@@ -620,24 +634,34 @@ void scanRfidTask(void * parameter) {
 
             // We probably have an NTAG2xx card (though it could be Ultralight as well)
             Serial.println("Seems to be an NTAG2xx tag (7 byte UID)");
+            Serial.print("Tag size: ");
+            Serial.print(tagSize);
+            Serial.println(" bytes");
             
             uint8_t numPages = readTagSize()/4;
+            
             for (uint8_t i = 4; i < 4+numPages; i++) {
+              
               if (!nfc.ntag2xx_ReadPage(i, data+(i-4) * 4))
               {
                 break; // Stop if reading fails
               }
+             
               // Check for NDEF message end
               if (data[(i - 4) * 4] == 0xFE) 
               {
+                Serial.println("Found NDEF message end marker");
                 break; // End of NDEF message
               }
 
               yield();
               esp_task_wdt_reset();
-              vTaskDelay(pdMS_TO_TICKS(1));
+              // Increased delay to ensure stable reading
+              vTaskDelay(pdMS_TO_TICKS(5)); // Increased from 1ms to 5ms
             }
-
+            
+            Serial.println("Tag reading completed, starting NDEF decode...");
+            
             if (!decodeNdefAndReturnJson(data, uidString)) 
             {
               oledShowProgressBar(1, 1, "Failure", "Unknown tag");
