@@ -752,10 +752,18 @@ uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
     filamentDoc["weight"] = payload["weight"].as<String>();
     filamentDoc["spool_weight"] = payload["spool_weight"].as<String>();
     filamentDoc["article_number"] = payload["artnr"].as<String>();
-    filamentDoc["comment"] = String("automatically generated");
     filamentDoc["extruder_temp"] = payload["extruder_temp"].is<String>() ? payload["extruder_temp"].as<String>() : "";
     filamentDoc["bed_temp"] = payload["bed_temp"].is<String>() ? payload["bed_temp"].as<String>() : "";
-    filamentDoc["external_id"] = payload["artnr"].as<String>();
+    
+    if (payload["artnr"].is<String>())
+    {
+        filamentDoc["external_id"] = payload["artnr"].as<String>();
+        filamentDoc["comment"] = payload["url"].is<String>() ? payload["url"].as<String>() + payload["artnr"].as<String>() : "automatically generated";
+    }
+    else
+    {
+        filamentDoc["comment"] = payload["url"].is<String>() ? payload["url"].as<String>() : "automatically generated";
+    }
 
     if (payload["multi_color_hexes"].is<String>()) {
         filamentDoc["multi_color_hexes"] = payload["multi_color_hexes"].as<String>();
