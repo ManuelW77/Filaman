@@ -701,27 +701,15 @@ uint16_t checkVendor(String vendor) {
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
     
-
-    if(spoolmanApiState == API_IDLE) {
-        // Erstelle die Task
-        BaseType_t result = xTaskCreate(
-            sendToApi,                // Task-Funktion
-            "SendToApiTask",          // Task-Name
-            6144,                     // Stackgröße in Bytes
-            (void*)params,            // Parameter
-            0,                        // Priorität
-            NULL                      // Task-Handle (nicht benötigt)
-        );
-    } else {
-        Serial.println("Not spawning new task, API still active!");
-        delete params;
-        return 0;
-    }
-    
-    // Wait for task completion
-    while(spoolmanApiState != API_IDLE) {
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-    }
+    // Erstelle die Task
+    BaseType_t result = xTaskCreate(
+        sendToApi,                // Task-Funktion
+        "SendToApiTask",          // Task-Name
+        6144,                     // Stackgröße in Bytes
+        (void*)params,            // Parameter
+        0,                        // Priorität
+        NULL                      // Task-Handle (nicht benötigt)
+    );
     
     // Additional delay to ensure foundVendorId is properly set after API state becomes IDLE
     while (foundVendorId == NULL)
@@ -852,27 +840,15 @@ uint16_t checkFilament(uint16_t vendorId, const JsonDocument& payload) {
     params->spoolsUrl = spoolsUrl;
     params->updatePayload = ""; // Empty for GET request
 
-    // Check if API is idle before creating task
-    //if(spoolmanApiState == API_IDLE){
-        // Erstelle die Task
-        BaseType_t result = xTaskCreate(
-            sendToApi,                // Task-Funktion
-            "SendToApiTask",          // Task-Name
-            6144,                     // Stackgröße in Bytes
-            (void*)params,            // Parameter
-            0,                        // Priorität
-            NULL                      // Task-Handle (nicht benötigt)
-        );
-    //} else {
-    //    Serial.println("Not spawning new task, API still active!");
-    //    delete params;
-    //    return 0;
-    //}
-    
-    // Wait for task completion
-    while(spoolmanApiState != API_IDLE) {
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-    }
+     // Erstelle die Task
+    BaseType_t result = xTaskCreate(
+        sendToApi,                // Task-Funktion
+        "SendToApiTask",          // Task-Name
+        6144,                     // Stackgröße in Bytes
+        (void*)params,            // Parameter
+        0,                        // Priorität
+        NULL                      // Task-Handle (nicht benötigt)
+    );
     
     // Additional delay to ensure foundFilamentId is properly set after API state becomes IDLE
     while (foundFilamentId == NULL) {
