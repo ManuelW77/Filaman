@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.5.12-beta8] - 2025-08-29
+### Added
+- add delay to ensure proper setting of vendor and filament IDs after API state changes
+
+### Changed
+- update platformio.ini for beta version v1.5.12-beta8
+
+### Fixed
+- correct color_hex key usage and comment out unused date fields in spool creation
+
+
 ## [1.5.12-beta7] - 2025-08-29
 ### Changed
 - update platformio.ini for beta version v1.5.12-beta7
