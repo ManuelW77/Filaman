@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.12-beta3] - 2025-08-29
+### Added
+- add logging for decoded JSON data in NFC processing
+
+### Changed
+- update platformio.ini for beta version v1.5.12-beta3
+
+
 ## [1.5.12-beta2] - 2025-08-29
 ### Changed
 - update platformio.ini for beta version v1.5.12-beta2
