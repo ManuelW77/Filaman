@@ -929,13 +929,6 @@ uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& paylo
     optimizedPayload["b"] = payload["b"].as<String>();
     optimizedPayload["cn"] = payload["an"].as<String>();
     
-    // Copy all other fields from original payload (excluding sm_id if it exists)
-    //for (JsonPair kv : payload.as<JsonObject>()) {
-    //    if (strcmp(kv.key().c_str(), "sm_id") != 0) {  // Skip sm_id to avoid duplication
-    //        optimizedPayload[kv.key()] = kv.value();
-    //    }
-    //}
-    
     String payloadString;
     serializeJson(optimizedPayload, payloadString);
     

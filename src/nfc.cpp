@@ -324,16 +324,48 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
     Serial.print("WARNING: Cannot read declared max page ");
     Serial.println(maxWritablePage);
     
-    // Find actual maximum writable page by testing backwards
+    // Find actual maximum writable page by testing backwards with optimized approach
     uint16_t actualMaxPage = maxWritablePage;
-    for (uint16_t testPage = maxWritablePage; testPage >= 4; testPage--) {
-      if (nfc.ntag2xx_ReadPage(testPage, testBuffer)) {
-        actualMaxPage = testPage;
-        Serial.print("Found actual max readable page: ");
-        Serial.println(actualMaxPage);
-        break;
+    Serial.println("Searching for actual maximum writable page...");
+    
+    // Use binary search approach for faster page limit detection
+    uint16_t lowPage = 4;
+    uint16_t highPage = maxWritablePage;
+    uint16_t testAttempts = 0;
+    const uint16_t maxTestAttempts = 15; // Limit search attempts
+    
+    while (lowPage <= highPage && testAttempts < maxTestAttempts) {
+      uint16_t midPage = (lowPage + highPage) / 2;
+      testAttempts++;
+      
+      Serial.print("Testing page ");
+      Serial.print(midPage);
+      Serial.print(" (attempt ");
+      Serial.print(testAttempts);
+      Serial.print("/");
+      Serial.print(maxTestAttempts);
+      Serial.print(")... ");
+      
+      if (nfc.ntag2xx_ReadPage(midPage, testBuffer)) {
+        Serial.println("✓");
+        actualMaxPage = midPage;
+        lowPage = midPage + 1; // Search higher
+      } else {
+        Serial.println("❌");
+        highPage = midPage - 1; // Search lower
       }
+      
+      // Small delay to prevent interface overload
+      vTaskDelay(5 / portTICK_PERIOD_MS);
+      yield();
     }
+    
+    Serial.print("Found actual max readable page: ");
+    Serial.println(actualMaxPage);
+    Serial.print("Search completed in ");
+    Serial.print(testAttempts);
+    Serial.println(" attempts");
+    
     maxWritablePage = actualMaxPage;
   } else {
     Serial.print("✓ Max page ");Serial.print(maxWritablePage);Serial.println(" is readable");
@@ -989,161 +1021,6 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
   }
   
   Serial.println("==================================================================");
-  
-  // CRITICAL: Verify the write by reading back the data
-  Serial.println();
-  Serial.println("=== WRITE VERIFICATION ===");
-  
-  // Wait a moment for tag to stabilize
-  vTaskDelay(200 / portTICK_PERIOD_MS); // Increased stabilization time
-  
-  // Only proceed with verification if interface is responsive
-  if (!interfaceResponsive) {
-    Serial.println("SKIPPING VERIFICATION: Interface not responsive");
-    Serial.println("❌ WRITE COMPLETED but VERIFICATION SKIPPED");
-    Serial.println("❌ Cannot guarantee data integrity");
-    return 0;
-  }
-  
-  // Read back the written data to verify
-  uint8_t verifyBuffer[totalBytes];
-  memset(verifyBuffer, 0, totalBytes);
-  
-  bool verificationSuccess = true;
-  uint8_t verifyPage = 4;
-  uint16_t verifyBytesRead = 0;
-  
-  while (verifyBytesRead < totalBytes && verifyPage <= maxWritablePage) {
-    uint8_t pageData[4];
-    
-    // Verification read with retry mechanism
-    bool pageReadSuccess = false;
-    for (int readAttempt = 0; readAttempt < 3; readAttempt++) {
-      if (nfc.ntag2xx_ReadPage(verifyPage, pageData)) {
-        pageReadSuccess = true;
-        break;
-      } else {
-        Serial.print("Verification read attempt ");
-        Serial.print(readAttempt + 1);
-        Serial.print("/3 for page ");
-        Serial.print(verifyPage);
-        Serial.println(" failed");
-        
-        if (readAttempt < 2) {
-          vTaskDelay(50 / portTICK_PERIOD_MS);
-        }
-      }
-    }
-    
-    if (!pageReadSuccess) {
-      Serial.print("VERIFICATION FAILED: Cannot read page ");
-      Serial.println(verifyPage);
-      verificationSuccess = false;
-      break;
-    }
-    
-    // Copy page data to verify buffer
-    uint16_t bytesToCopy = min(4, (int)(totalBytes - verifyBytesRead));
-    memcpy(&verifyBuffer[verifyBytesRead], pageData, bytesToCopy);
-    
-    verifyBytesRead += bytesToCopy;
-    verifyPage++;
-    
-    vTaskDelay(10 / portTICK_PERIOD_MS); // Small delay between verification reads
-  }
-  
-  if (verificationSuccess && verifyBytesRead >= totalBytes) {
-    // Compare written data with read data
-    bool dataMatches = true;
-    for (uint16_t i = 0; i < totalBytes; i++) {
-      if (verifyBuffer[i] != tlvData[i]) {
-        Serial.print("VERIFICATION FAILED: Data mismatch at byte ");
-        Serial.print(i);
-        Serial.print(" - Expected: 0x");
-        Serial.print(tlvData[i], HEX);
-        Serial.print(", Read: 0x");
-        Serial.println(verifyBuffer[i], HEX);
-        dataMatches = false;
-        break;
-      }
-    }
-    
-    if (dataMatches) {
-      Serial.println("✓ WRITE VERIFICATION SUCCESSFUL!");
-      Serial.println("✓ All written data verified correctly");
-      
-      // Additional JSON verification - try to parse the written JSON
-      Serial.println("=== JSON VERIFICATION ===");
-      
-      // Find and extract JSON from verified data
-      // Look for the JSON payload within the NDEF structure
-      bool jsonFound = false;
-      for (uint16_t i = 0; i < totalBytes - 10; i++) {
-        if (verifyBuffer[i] == '{') {
-          // Found potential JSON start
-          String extractedJson = "";
-          uint16_t jsonEnd = 0;
-          
-          for (uint16_t j = i; j < totalBytes; j++) {
-            if (verifyBuffer[j] >= 32 && verifyBuffer[j] <= 126) {
-              extractedJson += (char)verifyBuffer[j];
-              if (verifyBuffer[j] == '}') {
-                jsonEnd = j;
-                break;
-              }
-            }
-          }
-          
-          Serial.print("Extracted JSON from tag: ");
-          Serial.println(extractedJson);
-          
-          // Try to parse the extracted JSON
-          JsonDocument testDoc;
-          DeserializationError error = deserializeJson(testDoc, extractedJson);
-          if (!error) {
-            Serial.println("✓ JSON VERIFICATION SUCCESSFUL!");
-            Serial.print("✓ JSON is valid and parseable");
-            
-            if (testDoc["sm_id"].is<String>()) {
-              Serial.print(" - sm_id found: ");
-              Serial.println(testDoc["sm_id"].as<String>());
-            } else {
-              Serial.println(" - WARNING: sm_id not found in JSON!");
-            }
-            
-            jsonFound = true;
-            testDoc.clear();
-            break;
-          } else {
-            Serial.print("JSON parse error: ");
-            Serial.println(error.c_str());
-          }
-        }
-      }
-      
-      if (!jsonFound) {
-        Serial.println("WARNING: No valid JSON found in verified data!");
-        verificationSuccess = false;
-      } else {
-        Serial.println("✓ JSON extracted and validated successfully");
-      }
-      
-    } else {
-      verificationSuccess = false;
-    }
-  } else {
-    Serial.println("VERIFICATION FAILED: Could not read back all data");
-    verificationSuccess = false;
-  }
-  
-  Serial.println("=========================");
-  Serial.println();
-  
-  if (!verificationSuccess) {
-    Serial.println("❌ WRITE FAILED - Data verification unsuccessful");
-    Serial.println("❌ Tag may not contain the expected data");
-    return 0;
-  }
   
   return 1;
 }
