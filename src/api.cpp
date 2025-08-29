@@ -158,7 +158,8 @@ void sendToApi(void *parameter) {
                 //oledShowMessage("Remaining: " + String(remaining_weight) + "g");
                 if(!octoEnabled){
                     // TBD: Do not use Strings...
-                    oledShowProgressBar(1, 1, "Spool Tag", ("Done: " + String(remainingWeight) + " g remain").c_str());
+                    //oledShowProgressBar(1, 1, "Spool Tag", ("Done: " + String(remainingWeight) + " g remain").c_str());
+                    oledShowMessage("Remaining: " + String(remainingWeight) + "g");
                     remainingWeight = 0;
                 }else{
                     // ocoto is enabled, trigger octo update
@@ -173,7 +174,8 @@ void sendToApi(void *parameter) {
                 break;
             case API_REQUEST_OCTO_SPOOL_UPDATE:
                 // TBD: Do not use Strings...
-                oledShowProgressBar(5, 5, "Spool Tag", ("Done: " + String(remainingWeight) + " g remain").c_str());
+                //oledShowProgressBar(5, 5, "Spool Tag", ("Done: " + String(remainingWeight) + " g remain").c_str());
+                oledShowMessage("Remaining: " + String(remainingWeight) + "g");
                 remainingWeight = 0;
                 break;
             case API_REQUEST_VENDOR_CREATE:
