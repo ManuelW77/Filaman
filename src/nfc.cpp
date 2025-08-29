@@ -216,6 +216,9 @@ bool decodeNdefAndReturnJson(const byte* encodedMessage, String uidString) {
     nfcJsonData += (char)encodedMessage[3 + typeLength + i];
   }
 
+  Serial.println("Decoded JSON Data:");
+  Serial.println(nfcJsonData);
+
   // JSON-Dokument verarbeiten
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, nfcJsonData);
