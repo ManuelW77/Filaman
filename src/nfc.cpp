@@ -23,6 +23,7 @@ bool tagProcessed = false;
 volatile bool pauseBambuMqttTask = false;
 volatile bool nfcReadingTaskSuspendRequest = false;
 volatile bool nfcReadingTaskSuspendState = false;
+volatile bool nfcWriteInProgress = false; // Prevent any tag operations during write
 
 struct NfcWriteParameterType {
   bool tagType;
@@ -1068,6 +1069,12 @@ bool quickSpoolIdCheck(String uidString) {
     // Fast-path: Read only first 2-3 pages to check for sm_id pattern
     // This dramatically speeds up known spool recognition
     
+    // CRITICAL: Do not execute during write operations!
+    if (nfcWriteInProgress) {
+        Serial.println("FAST-PATH: Skipped during write operation");
+        return false;
+    }
+    
     Serial.println("=== FAST-PATH: Quick sm_id Check ===");
     
     // Read first 3 pages (12 bytes) after NDEF header (pages 4-6)
@@ -1139,14 +1146,16 @@ void writeJsonToTag(void *parameter) {
   Serial.println(params->payload);
 
   nfcReaderState = NFC_WRITING;
+  nfcWriteInProgress = true; // Block all tag operations during write
 
-  // IMPORTANT: Do NOT suspend reading task during writing!
-  // We need to be able to read during write verification
-  // Just set the state to WRITING to prevent scan conflicts
-  Serial.println("NFC Write Task starting - Reader remains active for verification");
+  // Suspend reading task during writing to prevent interference
+  // But keep low-level NFC operations available for verification
+  nfcReadingTaskSuspendRequest = true;
+  while(nfcReadingTaskSuspendState == false){
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+  }
   
-  // Small delay to ensure any ongoing operations complete
-  vTaskDelay(100 / portTICK_PERIOD_MS);
+  Serial.println("NFC Write Task starting - All tag operations blocked during write");
 
   //pauseBambuMqttTask = true;
   // aktualisieren der Website wenn sich der Status ändert
@@ -1234,9 +1243,8 @@ void writeJsonToTag(void *parameter) {
   sendWriteResult(nullptr, success);
   sendNfcData();
 
-  // Since we didn't suspend reading, we don't need to re-enable it
-  // Just reset the state back to IDLE
-  Serial.println("NFC Write Task completed - Reader was never suspended");
+  nfcReadingTaskSuspendRequest = false;
+  nfcWriteInProgress = false; // Re-enable tag operations
   pauseBambuMqttTask = false;
 
   free(params->payload);

@@ -24,6 +24,7 @@ extern String activeSpoolId;
 extern String lastSpoolId;
 extern volatile nfcReaderStateType nfcReaderState;
 extern volatile bool pauseBambuMqttTask;
+extern volatile bool nfcWriteInProgress;
 extern bool tagProcessed;
 
 
