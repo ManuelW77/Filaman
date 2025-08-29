@@ -206,62 +206,169 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
 bool decodeNdefAndReturnJson(const byte* encodedMessage, String uidString) {
   oledShowProgressBar(1, octoEnabled?5:4, "Reading", "Decoding data");
 
-  // Check for NDEF TLV (Type-Length-Value) structure
-  if (encodedMessage[0] != 0x03) {
-    Serial.println("Not a valid NDEF message (missing TLV tag 0x03)");
+  // Debug: Print first 32 bytes of the raw data
+  Serial.println("Raw NDEF data (first 32 bytes):");
+  for (int i = 0; i < 32; i++) {
+    if (encodedMessage[i] < 0x10) Serial.print("0");
+    Serial.print(encodedMessage[i], HEX);
+    Serial.print(" ");
+    if ((i + 1) % 16 == 0) Serial.println();
+  }
+  Serial.println();
+
+  // Look for the NDEF TLV structure starting from the beginning
+  int tlvOffset = 0;
+  bool foundNdefTlv = false;
+  
+  // Search for NDEF TLV (0x03) in the first few bytes
+  for (int i = 0; i < 16; i++) {
+    if (encodedMessage[i] == 0x03) {
+      tlvOffset = i;
+      foundNdefTlv = true;
+      Serial.print("Found NDEF TLV at offset: ");
+      Serial.println(tlvOffset);
+      break;
+    }
+  }
+
+  if (!foundNdefTlv) {
+    Serial.println("No NDEF TLV found in tag data");
     return false;
   }
 
-  // Get the total NDEF message length from TLV
-  byte ndefMessageLength = encodedMessage[1];
+  // Get the NDEF message length from TLV
+  uint16_t ndefMessageLength = 0;
+  int ndefRecordOffset = 0;
   
-  // Skip TLV header (2 bytes) to get to NDEF record
-  const byte* ndefRecord = &encodedMessage[2];
+  if (encodedMessage[tlvOffset + 1] == 0xFF) {
+    // Extended length format: next 2 bytes contain the actual length
+    ndefMessageLength = (encodedMessage[tlvOffset + 2] << 8) | encodedMessage[tlvOffset + 3];
+    ndefRecordOffset = tlvOffset + 4; // Skip TLV tag + 0xFF + 2 length bytes
+    Serial.print("NDEF Message Length (extended): ");
+  } else {
+    // Standard length format: single byte contains the length
+    ndefMessageLength = encodedMessage[tlvOffset + 1];
+    ndefRecordOffset = tlvOffset + 2; // Skip TLV tag + 1 length byte
+    Serial.print("NDEF Message Length (standard): ");
+  }
+  Serial.println(ndefMessageLength);
+
+  // Get pointer to NDEF record
+  const byte* ndefRecord = &encodedMessage[ndefRecordOffset];
   
   // Parse NDEF record header
   byte recordHeader = ndefRecord[0];
   byte typeLength = ndefRecord[1];
   
+  Serial.print("NDEF Record Header: 0x");
+  Serial.println(recordHeader, HEX);
+  Serial.print("Type Length: ");
+  Serial.println(typeLength);
+
   // Determine payload length (can be 1 or 4 bytes depending on SR flag)
   uint32_t payloadLength = 0;
   byte payloadLengthBytes = 1;
+  byte payloadLengthOffset = 2;
   
-  // Check if Short Record (SR) flag is set
+  // Check if Short Record (SR) flag is set (bit 4)
   if (recordHeader & 0x10) { // SR flag
     payloadLength = ndefRecord[2];
     payloadLengthBytes = 1;
+    payloadLengthOffset = 2;
   } else {
     // Long record format (4 bytes for payload length)
     payloadLength = (ndefRecord[2] << 24) | (ndefRecord[3] << 16) | 
                    (ndefRecord[4] << 8) | ndefRecord[5];
     payloadLengthBytes = 4;
+    payloadLengthOffset = 2;
   }
 
-  Serial.print("NDEF Record Header: 0x");
-  Serial.println(recordHeader, HEX);
-  Serial.print("Type Length: ");
-  Serial.println(typeLength);
   Serial.print("Payload Length: ");
   Serial.println(payloadLength);
+  Serial.print("Payload Length Bytes: ");
+  Serial.println(payloadLengthBytes);
+
+  // Check for ID field (if IL flag is set)
+  byte idLength = 0;
+  if (recordHeader & 0x08) { // IL flag
+    idLength = ndefRecord[payloadLengthOffset + payloadLengthBytes];
+    Serial.print("ID Length: ");
+    Serial.println(idLength);
+  }
 
   // Calculate offset to payload
-  byte payloadOffset = 2 + payloadLengthBytes + typeLength;
+  byte payloadOffset = 1 + 1 + payloadLengthBytes + typeLength + idLength;
   
+  Serial.print("Calculated payload offset: ");
+  Serial.println(payloadOffset);
+
   // Verify we have enough data
-  if (payloadOffset + payloadLength > ndefMessageLength + 2) {
+  if (payloadOffset + payloadLength > ndefMessageLength) {
     Serial.println("Invalid NDEF structure - payload extends beyond message");
+    Serial.print("Payload offset + length: ");
+    Serial.print(payloadOffset + payloadLength);
+    Serial.print(", NDEF message length: ");
+    Serial.println(ndefMessageLength);
     return false;
   }
 
+  // Print the record type for debugging
+  Serial.print("Record Type: ");
+  for (int i = 0; i < typeLength; i++) {
+    Serial.print((char)ndefRecord[1 + 1 + payloadLengthBytes + i]);
+  }
+  Serial.println();
+
   nfcJsonData = "";
 
-  // Extract JSON payload
+  // Extract JSON payload with validation
+  uint32_t actualJsonLength = 0;
   for (uint32_t i = 0; i < payloadLength; i++) {
-    nfcJsonData += (char)ndefRecord[payloadOffset + i];
+    byte currentByte = ndefRecord[payloadOffset + i];
+    
+    // Stop at null terminator or if we find the end of JSON
+    if (currentByte == 0x00) {
+      Serial.print("Found null terminator at position: ");
+      Serial.println(i);
+      break;
+    }
+    
+    // Only add printable characters and common JSON characters
+    if (currentByte >= 32 && currentByte <= 126) {
+      nfcJsonData += (char)currentByte;
+      actualJsonLength++;
+    } else {
+      Serial.print("Skipping non-printable byte at position ");
+      Serial.print(i);
+      Serial.print(": 0x");
+      Serial.println(currentByte, HEX);
+    }
+    
+    // Check if we've reached the end of a JSON object
+    if (currentByte == '}') {
+      // Count opening and closing braces to detect complete JSON
+      int braceCount = 0;
+      for (uint32_t j = 0; j <= i; j++) {
+        if (ndefRecord[payloadOffset + j] == '{') braceCount++;
+        else if (ndefRecord[payloadOffset + j] == '}') braceCount--;
+      }
+      
+      if (braceCount == 0) {
+        Serial.print("Found complete JSON object at position: ");
+        Serial.println(i);
+        actualJsonLength = i + 1;
+        break;
+      }
+    }
   }
 
+  Serial.print("Actual JSON length extracted: ");
+  Serial.println(actualJsonLength);
   Serial.println("Decoded JSON Data:");
   Serial.println(nfcJsonData);
+  
+  // Trim any trailing whitespace or invalid characters
+  nfcJsonData.trim();
 
   // JSON-Dokument verarbeiten
   JsonDocument doc;
@@ -565,6 +672,18 @@ void scanRfidTask(void * parameter) {
         activeSpoolId = "";
         Serial.println("Tag entfernt");
         if (!bambuCredentials.autosend_enable) oledShowWeight(weight);
+      }
+      // Reset state after successful read when tag is removed
+      else if (!success && nfcReaderState == NFC_READ_SUCCESS)
+      {
+        nfcReaderState = NFC_IDLE;
+        Serial.println("Tag nach erfolgreichem Lesen entfernt - bereit für nächsten Tag");
+      }
+
+      // Add a longer pause after successful reading to prevent immediate re-reading
+      if (nfcReaderState == NFC_READ_SUCCESS) {
+        Serial.println("Tag erfolgreich gelesen - warte 5 Sekunden vor nächstem Scan");
+        vTaskDelay(5000 / portTICK_PERIOD_MS); // 5 second pause
       }
 
       // aktualisieren der Website wenn sich der Status ändert
