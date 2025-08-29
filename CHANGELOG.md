@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.5.12-beta12] - 2025-08-29
+### Changed
+- update platformio.ini for beta version v1.5.12-beta12
+
+### Fixed
+- reset NFC state on API send failure to allow retry
+- update createdFilamentId reset value to 65535 for better task handling
+- update createdVendorId reset value to 65535 for improved API handling
+
+
 ## [1.5.12-beta11] - 2025-08-29
 ### Changed
 - update platformio.ini for beta version v1.5.12-beta11
