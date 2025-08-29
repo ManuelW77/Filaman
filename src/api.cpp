@@ -9,18 +9,6 @@
 #include <time.h>
 volatile spoolmanApiStateType spoolmanApiState = API_IDLE;
 
-// Returns current date and time in ISO8601 format
-String getCurrentDateISO8601() {
-    struct tm timeinfo;
-    if(!getLocalTime(&timeinfo)) {
-        Serial.println("Failed to obtain time");
-        return "1970-01-01T00:00:00Z";
-    }
-    char timeStringBuff[25];
-    strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%dT%H:%M:%SZ", &timeinfo);
-    return String(timeStringBuff);
-}
-
 //bool spoolman_connected = false;
 String spoolmanUrl = "";
 bool octoEnabled = false;
@@ -627,7 +615,6 @@ uint16_t createVendor(String vendor) {
     JsonDocument vendorDoc;
     vendorDoc["name"] = vendor;
     vendorDoc["comment"] = "automatically generated";
-    vendorDoc["empty_spool_weight"] = 180;
     vendorDoc["external_id"] = vendor;
 
     String vendorPayload;
@@ -748,34 +735,34 @@ uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
 
     // Create JSON payload for filament creation
     JsonDocument filamentDoc;
-    filamentDoc["name"] = payload["color_name"].as<String>();
+    filamentDoc["name"] = payload["cn"].as<String>();
     filamentDoc["vendor_id"] = String(vendorId);
-    filamentDoc["material"] = payload["type"].as<String>();
-    filamentDoc["density"] = (payload["density"].is<String>() && payload["density"].as<String>().length() > 0) ? payload["density"].as<String>() : "1.24";
-    filamentDoc["diameter"] = (payload["diameter"].is<String>() && payload["diameter"].as<String>().length() > 0) ? payload["diameter"].as<String>() : "1.75";
+    filamentDoc["material"] = payload["t"].as<String>();
+    filamentDoc["density"] = (payload["de"].is<String>() && payload["de"].as<String>().length() > 0) ? payload["de"].as<String>() : "1.24";
+    filamentDoc["diameter"] = (payload["di"].is<String>() && payload["di"].as<String>().length() > 0) ? payload["di"].as<String>() : "1.75";
     filamentDoc["weight"] = String(weight);
-    filamentDoc["spool_weight"] = payload["spool_weight"].as<String>();
-    filamentDoc["article_number"] = payload["artnr"].as<String>();
-    filamentDoc["settings_extruder_temp"] = payload["extruder_temp"].is<String>() ? payload["extruder_temp"].as<String>() : "";
-    filamentDoc["settings_bed_temp"] = payload["bed_temp"].is<String>() ? payload["bed_temp"].as<String>() : "";
-    
-    if (payload["artnr"].is<String>())
+    filamentDoc["spool_weight"] = payload["sw"].as<String>();
+    filamentDoc["article_number"] = payload["an"].as<String>();
+    filamentDoc["settings_extruder_temp"] = payload["et"].is<String>() ? payload["et"].as<String>() : "";
+    filamentDoc["settings_bed_temp"] = payload["bt"].is<String>() ? payload["bt"].as<String>() : "";
+
+    if (payload["an"].is<String>())
     {
-        filamentDoc["external_id"] = payload["artnr"].as<String>();
-        filamentDoc["comment"] = payload["url"].is<String>() ? payload["url"].as<String>() + payload["artnr"].as<String>() : "automatically generated";
+        filamentDoc["external_id"] = payload["an"].as<String>();
+        filamentDoc["comment"] = payload["u"].is<String>() ? payload["u"].as<String>() + payload["an"].as<String>() : "automatically generated";
     }
     else
     {
-        filamentDoc["comment"] = payload["url"].is<String>() ? payload["url"].as<String>() : "automatically generated";
+        filamentDoc["comment"] = payload["u"].is<String>() ? payload["u"].as<String>() : "automatically generated";
     }
 
-    if (payload["multi_color_hexes"].is<String>()) {
-        filamentDoc["multi_color_hexes"] = payload["multi_color_hexes"].as<String>();
-        filamentDoc["multi_color_direction"] = payload["multi_color_direction"].is<String>() ? payload["multi_color_direction"].as<String>() : "";
+    if (payload["mc"].is<String>()) {
+        filamentDoc["multi_color_hexes"] = payload["mc"].as<String>();
+        filamentDoc["multi_color_direction"] = payload["mcd"].is<String>() ? payload["mcd"].as<String>() : "";
     }
     else
     {
-        filamentDoc["color_hex"] = (payload["color_hex"].is<String>() && payload["color_hex"].as<String>().length() >= 6) ? payload["color_hex"].as<String>() : "FFFFFF";
+        filamentDoc["color_hex"] = (payload["c"].is<String>() && payload["c"].as<String>().length() >= 6) ? payload["c"].as<String>() : "FFFFFF";
     }
 
     String filamentPayload;
@@ -883,17 +870,14 @@ uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& paylo
     String spoolsUrl = spoolmanUrl + apiUrl + "/spool";
     Serial.print("Create spool with URL: ");
     Serial.println(spoolsUrl);
-    //String currentDate = getCurrentDateISO8601();
 
     // Create JSON payload for spool creation
     JsonDocument spoolDoc;
-    //spoolDoc["first_used"] = String(currentDate);
-    //spoolDoc["last_used"] = String(currentDate);
     spoolDoc["filament_id"] = String(filamentId);
-    spoolDoc["initial_weight"] = weight > 10 ? String(weight-payload["spool_weight"].as<int>()) : "1000";
-    spoolDoc["spool_weight"] = (payload["spool_weight"].is<String>() && payload["spool_weight"].as<String>().length() > 0) ? payload["spool_weight"].as<String>() : "180";
-    spoolDoc["remaining_weight"] = (payload["weight"].is<String>() && payload["weight"].as<String>().length() > 0) ? payload["weight"].as<String>() : "1000";
-    spoolDoc["lot_nr"] = (payload["lotnr"].is<String>() && payload["lotnr"].as<String>().length() > 0) ? payload["lotnr"].as<String>() : "";
+    spoolDoc["initial_weight"] = weight > 10 ? String(weight - payload["sw"].as<int>()) : "1000";
+    spoolDoc["spool_weight"] = (payload["sw"].is<String>() && payload["sw"].as<String>().length() > 0) ? payload["sw"].as<String>() : "180";
+    spoolDoc["remaining_weight"] = spoolDoc["initial_weight"];
+    spoolDoc["lot_nr"] = (payload["an"].is<String>() && payload["an"].as<String>().length() > 0) ? payload["an"].as<String>() : "";
     spoolDoc["comment"] = "automatically generated";
     spoolDoc["extra"]["nfc_id"] = "\"" + uidString + "\"";
 
@@ -942,13 +926,15 @@ uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& paylo
     // Create optimized JSON structure with sm_id at the beginning for fast-path detection
     JsonDocument optimizedPayload;
     optimizedPayload["sm_id"] = String(createdSpoolId);  // Place sm_id first for fast scanning
+    optimizedPayload["b"] = payload["b"].as<String>();
+    optimizedPayload["cn"] = payload["an"].as<String>();
     
     // Copy all other fields from original payload (excluding sm_id if it exists)
-    for (JsonPair kv : payload.as<JsonObject>()) {
-        if (strcmp(kv.key().c_str(), "sm_id") != 0) {  // Skip sm_id to avoid duplication
-            optimizedPayload[kv.key()] = kv.value();
-        }
-    }
+    //for (JsonPair kv : payload.as<JsonObject>()) {
+    //    if (strcmp(kv.key().c_str(), "sm_id") != 0) {  // Skip sm_id to avoid duplication
+    //        optimizedPayload[kv.key()] = kv.value();
+    //    }
+    //}
     
     String payloadString;
     serializeJson(optimizedPayload, payloadString);
