@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.5.12-beta18] - 2025-08-29
+### Added
+- add display delay for vendor, filament, and spool creation processes
+
+### Changed
+- update platformio.ini for beta version v1.5.12-beta18
+
+### Fixed
+- replace progress bar with message display for remaining weight in sendToApi function
+
+
 ## [1.5.12-beta17] - 2025-08-29
 ### Added
 - add progress bar updates for vendor and filament creation processes
