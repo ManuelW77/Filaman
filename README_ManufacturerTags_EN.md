@@ -62,7 +62,7 @@ Manufacturer tags must contain a JSON payload with specific fields using **short
 
 - **`mc`** (multicolor): Comma-separated hex colors for multicolor filaments
 - **`mcd`** (multicolor direction): Direction for multicolor (coaxial, longitudinal)
-- **`u`** (url): Product URL for additional information
+- **`u`** (url): Product URL with direct link to the article e.g. for reordering
 
 ### Example Tag
 

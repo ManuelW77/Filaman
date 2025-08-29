@@ -62,7 +62,7 @@ Hersteller Tags müssen eine JSON-Payload mit spezifischen Feldern enthalten, di
 
 - **`mc`** (multicolor): Komma-getrennte Hex-Farben für Mehrfarben-Filamente
 - **`mcd`** (multicolor direction): Richtung für Mehrfarben (coaxial, longitudinal)
-- **`u`** (url): Produkt-URL für zusätzliche Informationen
+- **`u`** (url): Produkt-URL mit direktem Link zum Artikel zB für Nachbestellung
 
 ### Beispiel Tag
 
