@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.0.0-beta4] - 2025-08-29
+### Changed
+- update platformio.ini for beta version v2.0.0-beta4
+
+### Fixed
+- update createVendor function to use external_id as comment instead of static text
+- update to_old_version in platformio.ini to reflect correct previous version
+
+
 ## [2.0.0-beta3] - 2025-08-29
 ### Changed
 - update platformio.ini for beta version v2.0.0-beta3
