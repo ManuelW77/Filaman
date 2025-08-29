@@ -5,6 +5,7 @@
 #include <Preferences.h>
 #include "debug.h"
 #include "scale.h"
+#include "nfc.h"
 #include <time.h>
 volatile spoolmanApiStateType spoolmanApiState = API_IDLE;
 
@@ -151,7 +152,7 @@ void sendToApi(void *parameter) {
     else httpCode = http.PUT(updatePayload);
 
     if (httpCode == HTTP_CODE_OK) {
-        Serial.println("Spoolman erfolgreich aktualisiert");
+        Serial.println("Spoolman Abfrage erfolgreich");
 
         // Restgewicht der Spule auslesen
         String payload = http.getString();
@@ -676,7 +677,7 @@ uint16_t createVendor(String vendor) {
 
 uint16_t checkVendor(String vendor) {
     // Check if vendor exists using task system
-    foundVendorId = NULL; // Reset previous value
+    foundVendorId = 65535; // Reset to invalid value to detect when API response is received
     
     String vendorName = vendor;
     vendorName.trim();
@@ -711,8 +712,8 @@ uint16_t checkVendor(String vendor) {
         NULL                      // Task-Handle (nicht benötigt)
     );
     
-    // Additional delay to ensure foundVendorId is properly set after API state becomes IDLE
-    while (foundVendorId == NULL)
+    // Wait until foundVendorId is updated by the API response (not 65535 anymore)
+    while (foundVendorId == 65535)
     {
         vTaskDelay(50 / portTICK_PERIOD_MS);
     }
@@ -824,7 +825,7 @@ uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
 
 uint16_t checkFilament(uint16_t vendorId, const JsonDocument& payload) {
     // Check if filament exists using task system
-    foundFilamentId = NULL; // Reset previous value
+    foundFilamentId = 65535; // Reset to invalid value to detect when API response is received
 
     String spoolsUrl = spoolmanUrl + apiUrl + "/filament?vendor.id=" + String(vendorId) + "&external_id=" + String(payload["artnr"].as<String>());
     Serial.print("Check filament with URL: ");
@@ -850,8 +851,8 @@ uint16_t checkFilament(uint16_t vendorId, const JsonDocument& payload) {
         NULL                      // Task-Handle (nicht benötigt)
     );
     
-    // Additional delay to ensure foundFilamentId is properly set after API state becomes IDLE
-    while (foundFilamentId == NULL) {
+    // Wait until foundFilamentId is updated by the API response (not 65535 anymore)
+    while (foundFilamentId == 65535) {
         vTaskDelay(50 / portTICK_PERIOD_MS);
     }
 
@@ -878,7 +879,7 @@ uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& paylo
     // Create new spool in Spoolman database using task system
     // Note: Due to async nature, the ID will be stored in createdSpoolId global variable
     // Note: This function assumes that the caller has already ensured API is IDLE
-    createdSpoolId = NULL; // Reset previous value
+    createdSpoolId = 65535; // Reset to invalid value to detect when API response is received
     
     String spoolsUrl = spoolmanUrl + apiUrl + "/spool";
     Serial.print("Create spool with URL: ");
@@ -932,7 +933,7 @@ uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& paylo
     
     // Wait for task completion and return the created spool ID
     // Note: createdSpoolId will be set by sendToApi when response is received
-    while(createdSpoolId == NULL) {
+    while(createdSpoolId == 65535) {
         vTaskDelay(50 / portTICK_PERIOD_MS);
     }
 
