@@ -206,14 +206,58 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
 bool decodeNdefAndReturnJson(const byte* encodedMessage, String uidString) {
   oledShowProgressBar(1, octoEnabled?5:4, "Reading", "Decoding data");
 
-  byte typeLength = encodedMessage[3];
-  byte payloadLength = encodedMessage[4];
+  // Check for NDEF TLV (Type-Length-Value) structure
+  if (encodedMessage[0] != 0x03) {
+    Serial.println("Not a valid NDEF message (missing TLV tag 0x03)");
+    return false;
+  }
+
+  // Get the total NDEF message length from TLV
+  byte ndefMessageLength = encodedMessage[1];
+  
+  // Skip TLV header (2 bytes) to get to NDEF record
+  const byte* ndefRecord = &encodedMessage[2];
+  
+  // Parse NDEF record header
+  byte recordHeader = ndefRecord[0];
+  byte typeLength = ndefRecord[1];
+  
+  // Determine payload length (can be 1 or 4 bytes depending on SR flag)
+  uint32_t payloadLength = 0;
+  byte payloadLengthBytes = 1;
+  
+  // Check if Short Record (SR) flag is set
+  if (recordHeader & 0x10) { // SR flag
+    payloadLength = ndefRecord[2];
+    payloadLengthBytes = 1;
+  } else {
+    // Long record format (4 bytes for payload length)
+    payloadLength = (ndefRecord[2] << 24) | (ndefRecord[3] << 16) | 
+                   (ndefRecord[4] << 8) | ndefRecord[5];
+    payloadLengthBytes = 4;
+  }
+
+  Serial.print("NDEF Record Header: 0x");
+  Serial.println(recordHeader, HEX);
+  Serial.print("Type Length: ");
+  Serial.println(typeLength);
+  Serial.print("Payload Length: ");
+  Serial.println(payloadLength);
+
+  // Calculate offset to payload
+  byte payloadOffset = 2 + payloadLengthBytes + typeLength;
+  
+  // Verify we have enough data
+  if (payloadOffset + payloadLength > ndefMessageLength + 2) {
+    Serial.println("Invalid NDEF structure - payload extends beyond message");
+    return false;
+  }
 
   nfcJsonData = "";
 
-  for (int i = 2; i < payloadLength+2; i++) 
-  {
-    nfcJsonData += (char)encodedMessage[3 + typeLength + i];
+  // Extract JSON payload
+  for (uint32_t i = 0; i < payloadLength; i++) {
+    nfcJsonData += (char)ndefRecord[payloadOffset + i];
   }
 
   Serial.println("Decoded JSON Data:");
