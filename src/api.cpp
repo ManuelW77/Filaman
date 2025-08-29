@@ -603,7 +603,7 @@ bool updateSpoolBambuData(String payload) {
 }
 
 // #### Brand Filament
-uint16_t createVendor(String vendor) {
+uint16_t createVendor(const JsonDocument& payload) {
     oledShowProgressBar(2, 5, "New Brand", "Create new Vendor");
 
     // Create new vendor in Spoolman database using task system
@@ -617,9 +617,25 @@ uint16_t createVendor(String vendor) {
 
     // Create JSON payload for vendor creation
     JsonDocument vendorDoc;
-    vendorDoc["name"] = vendor;
+    vendorDoc["name"] = payload["b"].as<String>();
     vendorDoc["comment"] = "automatically generated";
-    vendorDoc["external_id"] = vendor;
+    
+    // Extract domain from URL if present, otherwise use brand name
+    String externalId = "";
+    if (payload["u"].is<String>()) {
+        String url = payload["u"].as<String>();
+        // Extract domain from URL (e.g., "https://www.blubb.de/f1234/?suche=irgendwas" -> "https://www.blubb.de")
+        int protocolEnd = url.indexOf("://");
+        if (protocolEnd != -1) {
+            int pathStart = url.indexOf("/", protocolEnd + 3);
+            externalId = (pathStart != -1) ? url.substring(0, pathStart) : url;
+        } else {
+            externalId = url; // No protocol found, use as is
+        }
+    } else {
+        externalId = payload["b"].as<String>();
+    }
+    vendorDoc["external_id"] = externalId;
 
     String vendorPayload;
     serializeJson(vendorDoc, vendorPayload);
@@ -668,13 +684,13 @@ uint16_t createVendor(String vendor) {
     return createdVendorId;
 }
 
-uint16_t checkVendor(String vendor) {
+uint16_t checkVendor(const JsonDocument& payload) {
     oledShowProgressBar(1, 5, "New Brand", "Check Vendor");
 
     // Check if vendor exists using task system
     foundVendorId = 65535; // Reset to invalid value to detect when API response is received
     
-    String vendorName = vendor;
+    String vendorName = payload["b"].as<String>();
     vendorName.trim();
     vendorName.replace(" ", "+");
     String spoolsUrl = spoolmanUrl + apiUrl + "/vendor?name=" + vendorName;
@@ -716,7 +732,7 @@ uint16_t checkVendor(String vendor) {
     // Check if vendor was found
     if (foundVendorId == 0) {
         Serial.println("Vendor not found, creating new vendor...");
-        uint16_t vendorId = createVendor(vendor);
+        uint16_t vendorId = createVendor(payload);
         if (vendorId == 0) {
             Serial.println("Failed to create vendor, returning 0.");
             return 0; // Failed to create vendor
@@ -725,7 +741,7 @@ uint16_t checkVendor(String vendor) {
             return vendorId;
         }
     } else {
-        Serial.println("Vendor found: " + vendor);
+        Serial.println("Vendor found: " + payload["b"].as<String>());
         Serial.print("Vendor ID: ");
         Serial.println(foundVendorId);
         return foundVendorId;
@@ -966,7 +982,7 @@ uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& paylo
 }
 
 bool createBrandFilament(JsonDocument& payload, String uidString) {
-    uint16_t vendorId = checkVendor(payload["b"].as<String>());
+    uint16_t vendorId = checkVendor(payload);
     if (vendorId == 0) {
         Serial.println("ERROR: Failed to create/find vendor");
         return false;
