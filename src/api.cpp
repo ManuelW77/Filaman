@@ -741,7 +741,7 @@ uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
     // Create new filament in Spoolman database using task system
     // Note: Due to async nature, the ID will be stored in createdFilamentId global variable
     // Note: This function assumes that the caller has already ensured API is IDLE
-    createdFilamentId = 0; // Reset previous value
+    createdFilamentId = 65535; // Reset previous value
     
     String spoolsUrl = spoolmanUrl + apiUrl + "/filament";
     Serial.print("Create filament with URL: ");
@@ -757,8 +757,8 @@ uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
     filamentDoc["weight"] = String(weight);
     filamentDoc["spool_weight"] = payload["spool_weight"].as<String>();
     filamentDoc["article_number"] = payload["artnr"].as<String>();
-    filamentDoc["extruder_temp"] = payload["extruder_temp"].is<String>() ? payload["extruder_temp"].as<String>() : "";
-    filamentDoc["bed_temp"] = payload["bed_temp"].is<String>() ? payload["bed_temp"].as<String>() : "";
+    filamentDoc["settings_extruder_temp"] = payload["extruder_temp"].is<String>() ? payload["extruder_temp"].as<String>() : "";
+    filamentDoc["settings_bed_temp"] = payload["bed_temp"].is<String>() ? payload["bed_temp"].as<String>() : "";
     
     if (payload["artnr"].is<String>())
     {
@@ -816,8 +816,8 @@ uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
     
     // Wait for task completion and return the created filament ID
     // Note: createdFilamentId will be set by sendToApi when response is received
-    while(spoolmanApiState != API_IDLE) {
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+    while(createdFilamentId == 65535) {
+        vTaskDelay(50 / portTICK_PERIOD_MS);
     }
     
     return createdFilamentId;
