@@ -778,7 +778,7 @@ uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
     }
     else
     {
-        filamentDoc["color_hex"] = (payload["color"].is<String>() && payload["color"].as<String>().length() >= 6) ? payload["color"].as<String>() : "FFFFFF";
+        filamentDoc["color_hex"] = (payload["color_hex"].is<String>() && payload["color_hex"].as<String>().length() >= 6) ? payload["color_hex"].as<String>() : "FFFFFF";
     }
 
     String filamentPayload;
@@ -900,8 +900,8 @@ uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& paylo
 
     // Create JSON payload for spool creation
     JsonDocument spoolDoc;
-    spoolDoc["first_used"] = String(currentDate);
-    spoolDoc["last_used"] = String(currentDate);
+    //spoolDoc["first_used"] = String(currentDate);
+    //spoolDoc["last_used"] = String(currentDate);
     spoolDoc["filament_id"] = String(filamentId);
     spoolDoc["initial_weight"] = weight > 10 ? String(weight) : "1000";
     spoolDoc["spool_weight"] = (payload["spool_weight"].is<String>() && payload["spool_weight"].as<String>().length() > 0) ? payload["spool_weight"].as<String>() : "180";
