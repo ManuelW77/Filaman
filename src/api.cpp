@@ -346,9 +346,8 @@ void sendToApi(void *parameter) {
             break;
         }
         Serial.println("Fehler beim Senden an Spoolman! HTTP Code: " + String(httpCode));
-
-        // TBD: really required?
         vTaskDelay(2000 / portTICK_PERIOD_MS);
+        nfcReaderState = NFC_IDLE; // Reset NFC state to allow retry
     }
 
     http.end();
