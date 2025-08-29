@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.12-beta10] - 2025-08-29
+### Changed
+- update platformio.ini for beta version v1.5.12-beta10
+- streamline task creation in checkVendor and checkFilament functions
+
+
 ## [1.5.12-beta9] - 2025-08-29
 ### Added
 - update vendor and filament ID handling to use NULL and add delays for stability
