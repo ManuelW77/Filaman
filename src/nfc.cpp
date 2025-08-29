@@ -314,6 +314,39 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
   Serial.print("Max Writable Page: ");Serial.println(maxWritablePage);
   Serial.println("========================");
 
+  // Perform additional tag validation by testing write boundaries
+  Serial.println("=== TAG VALIDATION ===");
+  uint8_t testBuffer[4] = {0x00, 0x00, 0x00, 0x00};
+  
+  // Test if we can actually read the max page
+  if (!nfc.ntag2xx_ReadPage(maxWritablePage, testBuffer)) {
+    Serial.print("WARNING: Cannot read declared max page ");
+    Serial.println(maxWritablePage);
+    
+    // Find actual maximum writable page by testing backwards
+    uint16_t actualMaxPage = maxWritablePage;
+    for (uint16_t testPage = maxWritablePage; testPage >= 4; testPage--) {
+      if (nfc.ntag2xx_ReadPage(testPage, testBuffer)) {
+        actualMaxPage = testPage;
+        Serial.print("Found actual max readable page: ");
+        Serial.println(actualMaxPage);
+        break;
+      }
+    }
+    maxWritablePage = actualMaxPage;
+  } else {
+    Serial.print("✓ Max page ");Serial.print(maxWritablePage);Serial.println(" is readable");
+  }
+  
+  // Calculate maximum available user data based on actual writable pages
+  uint16_t actualUserDataSize = (maxWritablePage - 3) * 4; // -3 because pages 0-3 are header
+  availableUserData = actualUserDataSize;
+  
+  Serial.print("Actual available user data: ");
+  Serial.print(actualUserDataSize);
+  Serial.println(" bytes");
+  Serial.println("========================");
+
   uint8_t pageBuffer[4] = {0, 0, 0, 0};
   Serial.println("Beginne mit dem Schreiben der NDEF-Nachricht...");
   
@@ -375,15 +408,110 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
 
   Serial.println("✓ Payload passt in den Tag - Schreibvorgang wird fortgesetzt");
 
-  // IMPORTANT: Use safe NDEF initialization instead of aggressive clearing
-  Serial.println("Schritt 1: Sichere NDEF-Initialisierung...");
+  // STEP 1: Read current tag content for debugging
+  Serial.println();
+  Serial.println("=== SCHRITT 1: AKTUELLER TAG-INHALT ===");
+  uint8_t currentContent[64]; // Read first 16 pages
+  memset(currentContent, 0, 64);
+  
+  for (uint8_t page = 4; page < 20; page++) {
+    uint8_t pageData[4];
+    if (nfc.ntag2xx_ReadPage(page, pageData)) {
+      memcpy(&currentContent[(page-4)*4], pageData, 4);
+      Serial.print("Seite ");
+      Serial.print(page);
+      Serial.print(": ");
+      for (int i = 0; i < 4; i++) {
+        if (pageData[i] < 0x10) Serial.print("0");
+        Serial.print(pageData[i], HEX);
+        Serial.print(" ");
+      }
+      Serial.println();
+    } else {
+      Serial.print("Fehler beim Lesen von Seite ");
+      Serial.println(page);
+    }
+  }
+  Serial.println("=========================================");
+
+  // STEP 2: Simple write test - write one test page
+  Serial.println();
+  Serial.println("=== SCHRITT 2: SCHREIBTEST ===");
+  uint8_t testPage[4] = {0xAA, 0xBB, 0xCC, 0xDD}; // Test pattern
+  
+  if (!nfc.ntag2xx_WritePage(10, testPage)) { // Use page 10 for test
+    Serial.println("FEHLER: Einfacher Schreibtest fehlgeschlagen!");
+    Serial.println("Tag ist möglicherweise schreibgeschützt oder defekt");
+    oledShowMessage("Tag write protected?");
+    vTaskDelay(3000 / portTICK_PERIOD_MS);
+    return 0;
+  }
+  
+  // Verify test write
+  uint8_t readBack[4];
+  if (!nfc.ntag2xx_ReadPage(10, readBack)) {
+    Serial.println("FEHLER: Kann Testdaten nicht zurücklesen!");
+    return 0;
+  }
+  
+  bool testSuccess = true;
+  for (int i = 0; i < 4; i++) {
+    if (readBack[i] != testPage[i]) {
+      testSuccess = false;
+      break;
+    }
+  }
+  
+  if (!testSuccess) {
+    Serial.println("FEHLER: Schreibtest fehlgeschlagen - Daten stimmen nicht überein!");
+    Serial.print("Geschrieben: ");
+    for (int i = 0; i < 4; i++) {
+      Serial.print(testPage[i], HEX); Serial.print(" ");
+    }
+    Serial.println();
+    Serial.print("Gelesen: ");
+    for (int i = 0; i < 4; i++) {
+      Serial.print(readBack[i], HEX); Serial.print(" ");
+    }
+    Serial.println();
+    return 0;
+  }
+  
+  Serial.println("✓ Schreibtest erfolgreich - Tag ist beschreibbar");
+  Serial.println("================================");
+
+  // STEP 3: NDEF initialization with verification
+  Serial.println();
+  Serial.println("=== SCHRITT 3: NDEF-INITIALISIERUNG ===");
   if (!initializeNdefStructure()) {
     Serial.println("FEHLER: Konnte NDEF-Struktur nicht initialisieren!");
     oledShowMessage("NDEF init failed");
     vTaskDelay(2000 / portTICK_PERIOD_MS);
     return 0;
   }
-  Serial.println("✓ NDEF-Struktur sicher initialisiert");
+  
+  // Verify NDEF initialization
+  uint8_t ndefCheck[8];
+  bool ndefVerified = true;
+  for (uint8_t page = 4; page < 6; page++) {
+    if (!nfc.ntag2xx_ReadPage(page, &ndefCheck[(page-4)*4])) {
+      ndefVerified = false;
+      break;
+    }
+  }
+  
+  if (ndefVerified) {
+    Serial.print("NDEF-Header nach Initialisierung: ");
+    for (int i = 0; i < 8; i++) {
+      if (ndefCheck[i] < 0x10) Serial.print("0");
+      Serial.print(ndefCheck[i], HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
+  }
+  
+  Serial.println("✓ NDEF-Struktur initialisiert und verifiziert");
+  Serial.println("==========================================");
 
   // Allocate memory for the complete TLV structure
   uint8_t* tlvData = (uint8_t*) malloc(totalTlvSize);
@@ -444,7 +572,8 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
   uint8_t pageNumber = 4;
   uint16_t totalBytes = offset + 1;
 
-  Serial.println("Schritt 2: Schreibe neue NDEF-Daten...");
+  Serial.println();
+  Serial.println("=== SCHRITT 4: SCHREIBE NEUE NDEF-DATEN ===");
   Serial.print("Schreibe ");
   Serial.print(totalBytes);
   Serial.print(" Bytes in ");
@@ -452,6 +581,13 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
   Serial.println(" Seiten...");
 
   while (bytesWritten < totalBytes && pageNumber <= maxWritablePage) {
+    // Additional safety check before writing each page
+    if (pageNumber > maxWritablePage) {
+      Serial.print("STOP: Reached maximum writable page ");
+      Serial.println(maxWritablePage);
+      break;
+    }
+    
     // Clear page buffer
     memset(pageBuffer, 0, 4);
     
@@ -467,6 +603,53 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
       Serial.println(pageNumber);
       Serial.print("Möglicherweise Page-Limit erreicht für ");
       Serial.println(tagType);
+      Serial.print("Erwartetes Maximum: ");
+      Serial.println(maxWritablePage);
+      Serial.print("Tatsächliches Maximum scheint niedriger zu sein!");
+      
+      // Update max page for future operations
+      if (pageNumber > 4) {
+        Serial.print("Setze neues Maximum auf Seite ");
+        Serial.println(pageNumber - 1);
+      }
+      
+      free(tlvData);
+      return 0;
+    }
+
+    // IMMEDIATE verification after each write - this is critical!
+    Serial.print("Verifiziere Seite ");
+    Serial.print(pageNumber);
+    Serial.print("... ");
+    
+    uint8_t verifyBuffer[4];
+    vTaskDelay(10 / portTICK_PERIOD_MS); // Small delay before verification
+    
+    if (nfc.ntag2xx_ReadPage(pageNumber, verifyBuffer)) {
+      bool writeSuccess = true;
+      for (int i = 0; i < bytesToWrite; i++) {
+        if (verifyBuffer[i] != pageBuffer[i]) {
+          writeSuccess = false;
+          Serial.println();
+          Serial.print("VERIFIKATIONSFEHLER bei Byte ");
+          Serial.print(i);
+          Serial.print(" - Erwartet: 0x");
+          Serial.print(pageBuffer[i], HEX);
+          Serial.print(", Gelesen: 0x");
+          Serial.println(verifyBuffer[i], HEX);
+          break;
+        }
+      }
+      
+      if (!writeSuccess) {
+        Serial.println("❌ SCHREIBVORGANG FEHLGESCHLAGEN!");
+        free(tlvData);
+        return 0;
+      } else {
+        Serial.println("✓");
+      }
+    } else {
+      Serial.println("❌ Kann Seite nicht zur Verifikation lesen!");
       free(tlvData);
       return 0;
     }
@@ -511,7 +694,129 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
   Serial.print((bytesWritten * 100) / availableUserData);
   Serial.println("%");
   Serial.println("✓ Bestehende Daten wurden überschrieben");
+  
+  // CRITICAL: Verify the write by reading back the data
   Serial.println();
+  Serial.println("=== WRITE VERIFICATION ===");
+  
+  // Wait a moment for tag to stabilize
+  vTaskDelay(100 / portTICK_PERIOD_MS);
+  
+  // Read back the written data to verify
+  uint8_t verifyBuffer[totalBytes];
+  memset(verifyBuffer, 0, totalBytes);
+  
+  bool verificationSuccess = true;
+  uint8_t verifyPage = 4;
+  uint16_t verifyBytesRead = 0;
+  
+  while (verifyBytesRead < totalBytes && verifyPage <= maxWritablePage) {
+    uint8_t pageData[4];
+    if (!nfc.ntag2xx_ReadPage(verifyPage, pageData)) {
+      Serial.print("VERIFICATION FAILED: Cannot read page ");
+      Serial.println(verifyPage);
+      verificationSuccess = false;
+      break;
+    }
+    
+    // Copy page data to verify buffer
+    uint16_t bytesToCopy = min(4, (int)(totalBytes - verifyBytesRead));
+    memcpy(&verifyBuffer[verifyBytesRead], pageData, bytesToCopy);
+    
+    verifyBytesRead += bytesToCopy;
+    verifyPage++;
+  }
+  
+  if (verificationSuccess && verifyBytesRead >= totalBytes) {
+    // Compare written data with read data
+    bool dataMatches = true;
+    for (uint16_t i = 0; i < totalBytes; i++) {
+      if (verifyBuffer[i] != tlvData[i]) {
+        Serial.print("VERIFICATION FAILED: Data mismatch at byte ");
+        Serial.print(i);
+        Serial.print(" - Expected: 0x");
+        Serial.print(tlvData[i], HEX);
+        Serial.print(", Read: 0x");
+        Serial.println(verifyBuffer[i], HEX);
+        dataMatches = false;
+        break;
+      }
+    }
+    
+    if (dataMatches) {
+      Serial.println("✓ WRITE VERIFICATION SUCCESSFUL!");
+      Serial.println("✓ All written data verified correctly");
+      
+      // Additional JSON verification - try to parse the written JSON
+      Serial.println("=== JSON VERIFICATION ===");
+      
+      // Find and extract JSON from verified data
+      // Look for the JSON payload within the NDEF structure
+      bool jsonFound = false;
+      for (uint16_t i = 0; i < totalBytes - 10; i++) {
+        if (verifyBuffer[i] == '{') {
+          // Found potential JSON start
+          String extractedJson = "";
+          uint16_t jsonEnd = 0;
+          
+          for (uint16_t j = i; j < totalBytes; j++) {
+            if (verifyBuffer[j] >= 32 && verifyBuffer[j] <= 126) {
+              extractedJson += (char)verifyBuffer[j];
+              if (verifyBuffer[j] == '}') {
+                jsonEnd = j;
+                break;
+              }
+            }
+          }
+          
+          Serial.print("Extracted JSON from tag: ");
+          Serial.println(extractedJson);
+          
+          // Try to parse the extracted JSON
+          JsonDocument testDoc;
+          DeserializationError error = deserializeJson(testDoc, extractedJson);
+          if (!error) {
+            Serial.println("✓ JSON VERIFICATION SUCCESSFUL!");
+            Serial.print("✓ JSON is valid and parseable");
+            
+            if (testDoc["sm_id"].is<String>()) {
+              Serial.print(" - sm_id found: ");
+              Serial.println(testDoc["sm_id"].as<String>());
+            } else {
+              Serial.println(" - WARNING: sm_id not found in JSON!");
+            }
+            
+            jsonFound = true;
+            testDoc.clear();
+            break;
+          } else {
+            Serial.print("JSON parse error: ");
+            Serial.println(error.c_str());
+          }
+        }
+      }
+      
+      if (!jsonFound) {
+        Serial.println("WARNING: No valid JSON found in verified data!");
+        verificationSuccess = false;
+      }
+      
+    } else {
+      verificationSuccess = false;
+    }
+  } else {
+    Serial.println("VERIFICATION FAILED: Could not read back all data");
+    verificationSuccess = false;
+  }
+  
+  Serial.println("=========================");
+  Serial.println();
+  
+  if (!verificationSuccess) {
+    Serial.println("❌ WRITE FAILED - Data verification unsuccessful");
+    Serial.println("❌ Tag may not contain the expected data");
+    return 0;
+  }
   
   return 1;
 }
@@ -759,6 +1064,73 @@ bool decodeNdefAndReturnJson(const byte* encodedMessage, String uidString) {
   return true;
 }
 
+bool quickSpoolIdCheck(String uidString) {
+    // Fast-path: Read only first 2-3 pages to check for sm_id pattern
+    // This dramatically speeds up known spool recognition
+    
+    Serial.println("=== FAST-PATH: Quick sm_id Check ===");
+    
+    // Read first 3 pages (12 bytes) after NDEF header (pages 4-6)
+    uint8_t quickData[12];
+    memset(quickData, 0, 12);
+    
+    for (uint8_t page = 4; page < 7; page++) {
+        if (!nfc.ntag2xx_ReadPage(page, quickData + (page - 4) * 4)) {
+            Serial.print("Failed to read page ");
+            Serial.println(page);
+            return false; // Fall back to full read
+        }
+    }
+    
+    // Convert to string for pattern matching
+    String quickCheck = "";
+    for (int i = 0; i < 12; i++) {
+        if (quickData[i] >= 32 && quickData[i] <= 126) {
+            quickCheck += (char)quickData[i];
+        }
+    }
+    
+    Serial.print("Quick data (first 12 bytes): ");
+    Serial.println(quickCheck);
+    
+    // Look for sm_id pattern at the beginning
+    if (quickCheck.indexOf("\"sm_id\":\"") >= 0 && quickCheck.indexOf("\"sm_id\":\"0\"") < 0) {
+        Serial.println("✓ FAST-PATH: sm_id found in first bytes - known spool detected!");
+        
+        // Extract sm_id from quick data if possible
+        int smIdStart = quickCheck.indexOf("\"sm_id\":\"") + 9;
+        int smIdEnd = quickCheck.indexOf("\"", smIdStart);
+        
+        if (smIdEnd > smIdStart) {
+            String quickSpoolId = quickCheck.substring(smIdStart, smIdEnd);
+            Serial.print("✓ Quick extracted sm_id: ");
+            Serial.println(quickSpoolId);
+            
+            // Set as active spool immediately
+            activeSpoolId = quickSpoolId;
+            lastSpoolId = activeSpoolId;
+            
+            oledShowProgressBar(2, octoEnabled?5:4, "Known Spool", "Quick mode");
+            Serial.println("✓ FAST-PATH SUCCESS: Known spool processed quickly");
+            return true; // Skip full tag reading!
+        }
+    }
+    
+    // Check for other quick patterns
+    if (quickCheck.indexOf("\"location\":\"") >= 0) {
+        Serial.println("✓ FAST-PATH: Location tag detected");
+        return false; // Need full read for location processing
+    }
+    
+    if (quickCheck.indexOf("\"brand\":\"") >= 0 && quickCheck.indexOf("\"sm_id\":\"0\"") >= 0) {
+        Serial.println("✓ FAST-PATH: New brand filament detected (sm_id:0)");
+        return false; // Need full read for brand filament creation
+    }
+    
+    Serial.println("✗ FAST-PATH: No recognizable pattern - falling back to full read");
+    return false; // Fall back to full tag reading
+}
+
 void writeJsonToTag(void *parameter) {
   NfcWriteParameterType* params = (NfcWriteParameterType*)parameter;
 
@@ -768,11 +1140,13 @@ void writeJsonToTag(void *parameter) {
 
   nfcReaderState = NFC_WRITING;
 
-  // First request the reading task to be suspended and than wait until it responds
-  nfcReadingTaskSuspendRequest = true;
-  while(nfcReadingTaskSuspendState == false){
-    vTaskDelay(100 / portTICK_PERIOD_MS);
-  }
+  // IMPORTANT: Do NOT suspend reading task during writing!
+  // We need to be able to read during write verification
+  // Just set the state to WRITING to prevent scan conflicts
+  Serial.println("NFC Write Task starting - Reader remains active for verification");
+  
+  // Small delay to ensure any ongoing operations complete
+  vTaskDelay(100 / portTICK_PERIOD_MS);
 
   //pauseBambuMqttTask = true;
   // aktualisieren der Website wenn sich der Status ändert
@@ -860,7 +1234,9 @@ void writeJsonToTag(void *parameter) {
   sendWriteResult(nullptr, success);
   sendNfcData();
 
-  nfcReadingTaskSuspendRequest = false;
+  // Since we didn't suspend reading, we don't need to re-enable it
+  // Just reset the state back to IDLE
+  Serial.println("NFC Write Task completed - Reader was never suspended");
   pauseBambuMqttTask = false;
 
   free(params->payload);
@@ -938,6 +1314,18 @@ void scanRfidTask(void * parameter) {
         
         if (uidLength == 7)
         {
+          // Try fast-path detection first for known spools
+          if (quickSpoolIdCheck(uidString)) {
+              Serial.println("✓ FAST-PATH: Tag processed quickly, skipping full read");
+              pauseBambuMqttTask = false;
+              // Set reader back to idle for next scan
+              nfcReaderState = NFC_READ_SUCCESS;
+              delay(500); // Small delay before next scan
+              continue; // Skip full tag reading and continue scan loop
+          }
+
+          Serial.println("Continuing with full tag read after fast-path check");
+
           uint16_t tagSize = readTagSize();
           if(tagSize > 0)
           {

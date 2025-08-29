@@ -938,10 +938,25 @@ uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& paylo
 
     // Write data to tag with startWriteJsonToTag
     // void startWriteJsonToTag(const bool isSpoolTag, const char* payload);
-    payload["sm_id"].set(String(createdSpoolId));
+    
+    // Create optimized JSON structure with sm_id at the beginning for fast-path detection
+    JsonDocument optimizedPayload;
+    optimizedPayload["sm_id"] = String(createdSpoolId);  // Place sm_id first for fast scanning
+    
+    // Copy all other fields from original payload (excluding sm_id if it exists)
+    for (JsonPair kv : payload.as<JsonObject>()) {
+        if (strcmp(kv.key().c_str(), "sm_id") != 0) {  // Skip sm_id to avoid duplication
+            optimizedPayload[kv.key()] = kv.value();
+        }
+    }
     
     String payloadString;
-    serializeJson(payload, payloadString);
+    serializeJson(optimizedPayload, payloadString);
+    
+    Serial.println("Optimized JSON with sm_id first:");
+    Serial.println(payloadString);
+    
+    optimizedPayload.clear();
     
     nfcReaderState = NFC_IDLE;
     vTaskDelay(50 / portTICK_PERIOD_MS);
