@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.12-beta15] - 2025-08-29
+### Changed
+- update platformio.ini for beta version v1.5.12-beta15
+- enhance NFC write operation diagnostics and improve error handling
+- enhance NFC write operation handling and prevent tag operations during write
+
+
 ## [1.5.12-beta14] - 2025-08-29
 ### Changed
 - update platformio.ini for beta version v1.5.12-beta14
