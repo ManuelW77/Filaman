@@ -223,38 +223,6 @@ uint16_t getMaxUserDataPages()
   return maxPages;
 }
 
-bool clearUserDataArea() {
-    // IMPORTANT: Only clear user data pages, NOT configuration pages
-    // NTAG layout: Pages 0-3 (header), 4-N (user data), N+1-N+3 (config) - NEVER touch config!
-    String tagType = detectNtagType();
-    
-    // Calculate safe user data page ranges (NEVER touch config pages!)
-    uint16_t firstUserPage = 4;
-    uint16_t lastUserPage = 0;
-    
-    if (tagType == "NTAG213") {
-        lastUserPage = 39;  // Pages 40-42 are config - DO NOT TOUCH!
-        Serial.println("NTAG213: Sichere Löschung Seiten 4-39");
-    } else if (tagType == "NTAG215") {
-        lastUserPage = 129; // Pages 130-132 are config - DO NOT TOUCH!
-        Serial.println("NTAG215: Sichere Löschung Seiten 4-129");
-    } else if (tagType == "NTAG216") {
-        lastUserPage = 225; // Pages 226-228 are config - DO NOT TOUCH!
-        Serial.println("NTAG216: Sichere Löschung Seiten 4-225");
-    } else {
-        // Conservative fallback - only clear a small safe area
-        lastUserPage = 39;
-        Serial.println("UNKNOWN TAG: Konservative Löschung Seiten 4-39");
-    }
-    
-    Serial.println("WARNUNG: Vollständiges Löschen kann Tag beschädigen!");
-    Serial.println("Verwende stattdessen selective NDEF-Überschreibung...");
-    
-    // Instead of clearing everything, just write a minimal NDEF structure
-    // This is much safer and preserves tag integrity
-    return initializeNdefStructure();
-}
-
 bool initializeNdefStructure() {
     // Write minimal NDEF structure without destroying the tag
     // This creates a clean slate while preserving tag functionality
@@ -298,6 +266,38 @@ bool initializeNdefStructure() {
     Serial.println("✓ Sichere NDEF-Struktur initialisiert");
     Serial.println("✓ Tag bleibt funktionsfähig und überschreibbar");
     return true;
+}
+
+bool clearUserDataArea() {
+    // IMPORTANT: Only clear user data pages, NOT configuration pages
+    // NTAG layout: Pages 0-3 (header), 4-N (user data), N+1-N+3 (config) - NEVER touch config!
+    String tagType = detectNtagType();
+    
+    // Calculate safe user data page ranges (NEVER touch config pages!)
+    uint16_t firstUserPage = 4;
+    uint16_t lastUserPage = 0;
+    
+    if (tagType == "NTAG213") {
+        lastUserPage = 39;  // Pages 40-42 are config - DO NOT TOUCH!
+        Serial.println("NTAG213: Sichere Löschung Seiten 4-39");
+    } else if (tagType == "NTAG215") {
+        lastUserPage = 129; // Pages 130-132 are config - DO NOT TOUCH!
+        Serial.println("NTAG215: Sichere Löschung Seiten 4-129");
+    } else if (tagType == "NTAG216") {
+        lastUserPage = 225; // Pages 226-228 are config - DO NOT TOUCH!
+        Serial.println("NTAG216: Sichere Löschung Seiten 4-225");
+    } else {
+        // Conservative fallback - only clear a small safe area
+        lastUserPage = 39;
+        Serial.println("UNKNOWN TAG: Konservative Löschung Seiten 4-39");
+    }
+    
+    Serial.println("WARNUNG: Vollständiges Löschen kann Tag beschädigen!");
+    Serial.println("Verwende stattdessen selective NDEF-Überschreibung...");
+    
+    // Instead of clearing everything, just write a minimal NDEF structure
+    // This is much safer and preserves tag integrity
+    return initializeNdefStructure();
 }
 
 uint8_t ntag2xx_WriteNDEF(const char *payload) {
