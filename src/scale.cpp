@@ -48,9 +48,6 @@ void scale_loop(void * parameter) {
   Serial.println("Scale Loop started");
   Serial.println("++++++++++++++++++++++++++++++");
 
-  vTaskDelay(pdMS_TO_TICKS(500));
-  scale_tare_counter = 10; // damit beim Starten der Waage automatisch getart wird
-  
   for(;;) {
     if (scale.is_ready()) 
     {
@@ -120,11 +117,12 @@ void start_scale(bool touchSensorConnected) {
     esp_task_wdt_reset();
   }
 
-  if (scale.wait_ready_timeout(1000))
-  {
-    scale.set_scale(calibrationValue); // this value is obtained by calibrating the scale with known weights; see the README for details
-    //scale.tare();
+  while(!scale.is_ready()) {
+    vTaskDelay(pdMS_TO_TICKS(5000));
   }
+
+  scale.set_scale(calibrationValue); // this value is obtained by calibrating the scale with known weights; see the README for details
+  scale.tare();
 
   // Display Gewicht
   oledShowWeight(0);

@@ -654,6 +654,9 @@ uint16_t createVendor(String vendor) {
 
     vendorDoc.clear();
     
+    // Delay for Display Bar
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+
     // Wait for task completion and return the created vendor ID
     // Note: createdVendorId will be set by sendToApi when response is received
     while(createdVendorId == 65535) {
@@ -806,6 +809,9 @@ uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
 
     filamentDoc.clear();
     
+    // Delay for Display Bar
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+
     // Wait for task completion and return the created filament ID
     // Note: createdFilamentId will be set by sendToApi when response is received
     while(createdFilamentId == 65535) {
@@ -948,7 +954,10 @@ uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& paylo
     optimizedPayload.clear();
     
     nfcReaderState = NFC_IDLE;
-    vTaskDelay(50 / portTICK_PERIOD_MS);
+
+    // Delay for Display Bar
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    
     startWriteJsonToTag(true, payloadString.c_str());
 
     return createdSpoolId;
