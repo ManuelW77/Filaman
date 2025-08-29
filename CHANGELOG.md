@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.0-beta2] - 2025-08-29
+### Added
+- add Manufacturer Tags support documentation in German and English
+
+### Changed
+- update platformio.ini for beta version v2.0.0-beta2
+- clarify product URL description for Manufacturer Tags in German and English documentation
+
+### Fixed
+- increase delay in start_scale function for improved stability
+
+
 ## [2.0.0-beta1] - 2025-08-29
 ### Changed
 - update platformio.ini for beta version v2.0.0-beta1
