@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.0-beta5] - 2025-08-30
+### Changed
+- update platformio.ini for beta version v2.0.0-beta5
+
+### Fixed
+- call scale.tare() in setup after starting scale
+
+
 ## [2.0.0-beta4] - 2025-08-29
 ### Changed
 - update platformio.ini for beta version v2.0.0-beta4
