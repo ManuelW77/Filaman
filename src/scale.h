@@ -9,6 +9,12 @@ uint8_t start_scale(bool touchSensorConnected);
 uint8_t calibrate_scale();
 uint8_t tareScale();
 
+// Weight stabilization functions
+void resetWeightFilter();
+float calculateMovingAverage();
+float applyLowPassFilter(float newValue);
+int16_t processWeightReading(float rawWeight);
+
 extern HX711 scale;
 extern int16_t weight;
 extern uint8_t weigthCouterToApi;

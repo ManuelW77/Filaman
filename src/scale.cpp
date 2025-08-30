@@ -13,6 +13,19 @@ TaskHandle_t ScaleTask;
 
 int16_t weight = 0;
 
+// Weight stabilization variables
+#define MOVING_AVERAGE_SIZE 20          // Number of samples for moving average
+#define LOW_PASS_ALPHA 0.15f           // Low-pass filter coefficient (0.1-0.2 works well)
+#define DISPLAY_THRESHOLD 0.5f         // Only update display if change > 0.5g
+#define MEASUREMENT_INTERVAL_MS 50     // Measurement interval in milliseconds
+
+float weightBuffer[MOVING_AVERAGE_SIZE];
+uint8_t bufferIndex = 0;
+bool bufferFilled = false;
+float filteredWeight = 0.0f;
+int16_t lastDisplayedWeight = 0;
+unsigned long lastMeasurementTime = 0;
+
 uint8_t weigthCouterToApi = 0;
 uint8_t scale_tare_counter = 0;
 bool scaleTareRequest = false;
@@ -20,6 +33,77 @@ uint8_t pauseMainTask = 0;
 bool scaleCalibrated;
 bool autoTare = true;
 bool scaleCalibrationActive = false;
+
+// ##### Weight stabilization functions #####
+
+/**
+ * Reset weight filter buffer - call after tare or calibration
+ */
+void resetWeightFilter() {
+  bufferIndex = 0;
+  bufferFilled = false;
+  filteredWeight = 0.0f;
+  lastDisplayedWeight = 0;
+  
+  // Initialize buffer with zeros
+  for (int i = 0; i < MOVING_AVERAGE_SIZE; i++) {
+    weightBuffer[i] = 0.0f;
+  }
+}
+
+/**
+ * Calculate moving average from weight buffer
+ */
+float calculateMovingAverage() {
+  float sum = 0.0f;
+  int count = bufferFilled ? MOVING_AVERAGE_SIZE : bufferIndex;
+  
+  for (int i = 0; i < count; i++) {
+    sum += weightBuffer[i];
+  }
+  
+  return (count > 0) ? sum / count : 0.0f;
+}
+
+/**
+ * Apply low-pass filter to smooth weight readings
+ * Uses exponential smoothing: y_new = alpha * x_new + (1-alpha) * y_old
+ */
+float applyLowPassFilter(float newValue) {
+  filteredWeight = LOW_PASS_ALPHA * newValue + (1.0f - LOW_PASS_ALPHA) * filteredWeight;
+  return filteredWeight;
+}
+
+/**
+ * Process new weight reading with stabilization
+ * Returns stabilized weight value
+ */
+int16_t processWeightReading(float rawWeight) {
+  // Add to moving average buffer
+  weightBuffer[bufferIndex] = rawWeight;
+  bufferIndex = (bufferIndex + 1) % MOVING_AVERAGE_SIZE;
+  
+  if (bufferIndex == 0) {
+    bufferFilled = true;
+  }
+  
+  // Calculate moving average
+  float avgWeight = calculateMovingAverage();
+  
+  // Apply low-pass filter
+  float smoothedWeight = applyLowPassFilter(avgWeight);
+  
+  // Round to nearest gram
+  int16_t newWeight = round(smoothedWeight);
+  
+  // Only update displayed weight if change is significant
+  if (abs(newWeight - lastDisplayedWeight) >= DISPLAY_THRESHOLD) {
+    lastDisplayedWeight = newWeight;
+    return newWeight;
+  }
+  
+  return weight; // Return current weight if change is too small
+}
 
 // ##### Funktionen für Waage #####
 uint8_t setAutoTare(bool autoTareValue) {
@@ -39,6 +123,7 @@ uint8_t setAutoTare(bool autoTareValue) {
 uint8_t tareScale() {
   Serial.println("Tare scale");
   scale.tare();
+  resetWeightFilter(); // Reset stabilization filter after tare
   
   return 1;
 }
@@ -48,37 +133,63 @@ void scale_loop(void * parameter) {
   Serial.println("Scale Loop started");
   Serial.println("++++++++++++++++++++++++++++++");
 
+  // Initialize weight filter
+  resetWeightFilter();
+  lastMeasurementTime = millis();
+
   for(;;) {
-    if (scale.is_ready()) 
-    {
-      // Waage automatisch Taren, wenn zu lange Abweichung
-      if (autoTare && scale_tare_counter >= 5) 
+    unsigned long currentTime = millis();
+    
+    // Only measure at defined intervals to reduce noise
+    if (currentTime - lastMeasurementTime >= MEASUREMENT_INTERVAL_MS) {
+      if (scale.is_ready()) 
       {
-        Serial.println("Auto Tare scale");
-        scale.tare();
-        scale_tare_counter = 0;
-      }
+        // Waage automatisch Taren, wenn zu lange Abweichung
+        if (autoTare && scale_tare_counter >= 5) 
+        {
+          Serial.println("Auto Tare scale");
+          scale.tare();
+          resetWeightFilter(); // Reset filter after auto tare
+          scale_tare_counter = 0;
+        }
 
-      // Waage manuell Taren
-      if (scaleTareRequest == true) 
-      {
-        Serial.println("Re-Tare scale");
-        oledShowMessage("TARE Scale");
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        scale.tare();
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        oledShowWeight(0);
-        scaleTareRequest = false;
-      }
+        // Waage manuell Taren
+        if (scaleTareRequest == true) 
+        {
+          Serial.println("Re-Tare scale");
+          oledShowMessage("TARE Scale");
+          vTaskDelay(pdMS_TO_TICKS(1000));
+          scale.tare();
+          resetWeightFilter(); // Reset filter after manual tare
+          vTaskDelay(pdMS_TO_TICKS(1000));
+          oledShowWeight(0);
+          scaleTareRequest = false;
+        }
 
-      // Only update weight if median changed more than 1
-      int16_t newWeight = round(scale.get_units());
-      if(abs(weight-newWeight) > 1){
-        weight = newWeight;
+        // Get raw weight reading
+        float rawWeight = scale.get_units();
+        
+        // Process weight with stabilization
+        int16_t stabilizedWeight = processWeightReading(rawWeight);
+        
+        // Update global weight variable only if it changed
+        if (stabilizedWeight != weight) {
+          weight = stabilizedWeight;
+          
+          // Debug output for monitoring (can be removed in production)
+          static unsigned long lastDebugTime = 0;
+          if (currentTime - lastDebugTime > 1000) { // Print every second
+            Serial.printf("Raw: %.2f, Filtered: %.2f, Final: %d\n", 
+                         rawWeight, filteredWeight, weight);
+            lastDebugTime = currentTime;
+          }
+        }
+        
+        lastMeasurementTime = currentTime;
       }
     }
     
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(10)); // Shorter delay for more responsive loop
   }
 }
 
@@ -124,6 +235,9 @@ void start_scale(bool touchSensorConnected) {
   scale.set_scale(calibrationValue);
   //vTaskDelay(pdMS_TO_TICKS(5000));
   //scale.tare();
+
+  // Initialize weight stabilization filter
+  resetWeightFilter();
 
   // Display Gewicht
   oledShowWeight(0);
@@ -209,6 +323,7 @@ uint8_t calibrate_scale() {
       oledShowProgressBar(2, 3, "Scale Cal.", "Remove weight");
 
       scale.set_scale(newCalibrationValue);
+      resetWeightFilter(); // Reset filter after calibration
       for (uint16_t i = 0; i < 2000; i++) {
         yield();
         vTaskDelay(pdMS_TO_TICKS(1));
