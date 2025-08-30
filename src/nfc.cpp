@@ -1285,10 +1285,11 @@ bool quickSpoolIdCheck(String uidString) {
     memset(ndefData, 0, 20);
     
     for (uint8_t page = 4; page < 9; page++) {
-        if (!nfc.ntag2xx_ReadPage(page, ndefData + (page - 4) * 4)) {
-            Serial.print("Failed to read page ");
-            Serial.println(page);
-            return false; // Fall back to full read
+        if (!robustPageRead(page, ndefData + (page - 4) * 4)) {
+            Serial.print("FAST-PATH: Failed to read page ");
+            Serial.print(page);
+            Serial.println(" - falling back to full read");
+            return false; // Fall back to full read if any page read fails
         }
     }
     
@@ -1358,10 +1359,11 @@ bool quickSpoolIdCheck(String uidString) {
         memset(extraData, 0, 16);
         
         for (uint8_t page = 9; page < 13; page++) {
-            if (!nfc.ntag2xx_ReadPage(page, extraData + (page - 9) * 4)) {
-                Serial.print("Failed to read additional page ");
-                Serial.println(page);
-                return false;
+            if (!robustPageRead(page, extraData + (page - 9) * 4)) {
+                Serial.print("FAST-PATH: Failed to read additional page ");
+                Serial.print(page);
+                Serial.println(" - falling back to full read");
+                return false; // Fall back to full read if extended read fails
             }
         }
         
@@ -1655,10 +1657,60 @@ void writeJsonToTag(void *parameter) {
   vTaskDelete(NULL);
 }
 
+// Ensures sm_id is always the first key in JSON for fast-path detection
+String optimizeJsonForFastPath(const char* payload) {
+    JsonDocument inputDoc;
+    DeserializationError error = deserializeJson(inputDoc, payload);
+    
+    if (error) {
+        Serial.print("JSON optimization failed: ");
+        Serial.println(error.c_str());
+        return String(payload); // Return original if parsing fails
+    }
+    
+    // Create optimized JSON with sm_id first
+    JsonDocument optimizedDoc;
+    
+    // Always add sm_id first (even if it's "0" for brand filaments)
+    if (inputDoc["sm_id"].is<String>()) {
+        optimizedDoc["sm_id"] = inputDoc["sm_id"].as<String>();
+        Serial.print("Optimizing JSON: sm_id found = ");
+        Serial.println(inputDoc["sm_id"].as<String>());
+    } else {
+        optimizedDoc["sm_id"] = "0"; // Default for brand filaments
+        Serial.println("Optimizing JSON: No sm_id found, setting to '0'");
+    }
+    
+    // Add all other keys in original order
+    for (JsonPair kv : inputDoc.as<JsonObject>()) {
+        String key = kv.key().c_str();
+        if (key != "sm_id") { // Skip sm_id as it's already added first
+            optimizedDoc[key] = kv.value();
+        }
+    }
+    
+    String optimizedJson;
+    serializeJson(optimizedDoc, optimizedJson);
+    
+    Serial.println("JSON optimized for fast-path detection:");
+    Serial.print("Original:  ");
+    Serial.println(payload);
+    Serial.print("Optimized: ");
+    Serial.println(optimizedJson);
+    
+    inputDoc.clear();
+    optimizedDoc.clear();
+    
+    return optimizedJson;
+}
+
 void startWriteJsonToTag(const bool isSpoolTag, const char* payload) {
+  // Optimize JSON to ensure sm_id is first key for fast-path detection
+  String optimizedPayload = optimizeJsonForFastPath(payload);
+  
   NfcWriteParameterType* parameters = new NfcWriteParameterType();
   parameters->tagType = isSpoolTag;
-  parameters->payload = strdup(payload);
+  parameters->payload = strdup(optimizedPayload.c_str()); // Use optimized payload
   
   // Task nicht mehrfach starten
   if (nfcReaderState == NFC_IDLE || nfcReaderState == NFC_READ_ERROR || nfcReaderState == NFC_READ_SUCCESS) {
@@ -1762,6 +1814,11 @@ void scanRfidTask(void * parameter) {
 
       foundNfcTag(nullptr, success);
       
+      // Reset activeSpoolId immediately when no tag is detected to prevent stale autoSet
+      if (!success) {
+        activeSpoolId = "";
+      }
+      
       // As long as there is still a tag on the reader, do not try to read it again
       if (success && nfcReaderState == NFC_IDLE)
       {
@@ -1857,6 +1914,9 @@ void scanRfidTask(void * parameter) {
           {
             oledShowProgressBar(1, 1, "Failure", "Tag read error");
             nfcReaderState = NFC_READ_ERROR;
+            // Reset activeSpoolId when tag reading fails to prevent autoSet
+            activeSpoolId = "";
+            Serial.println("Tag read failed - activeSpoolId reset to prevent autoSet");
           }
         }
         else
@@ -1864,6 +1924,9 @@ void scanRfidTask(void * parameter) {
           //TBD: Show error here?!
           oledShowProgressBar(1, 1, "Failure", "Unkown tag type");
           Serial.println("This doesn't seem to be an NTAG2xx tag (UUID length != 7 bytes)!");
+          // Reset activeSpoolId when tag type is unknown to prevent autoSet
+          activeSpoolId = "";
+          Serial.println("Unknown tag type - activeSpoolId reset to prevent autoSet");
         }
       }
 
