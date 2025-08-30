@@ -108,6 +108,37 @@ bool formatNdefTag() {
   return buffer[2]*8;
 }
 
+// Robust page reading with error recovery
+bool robustPageRead(uint8_t page, uint8_t* buffer) {
+    const int MAX_READ_ATTEMPTS = 3;
+    
+    for (int attempt = 0; attempt < MAX_READ_ATTEMPTS; attempt++) {
+        esp_task_wdt_reset();
+        yield();
+        
+        if (nfc.ntag2xx_ReadPage(page, buffer)) {
+            return true;
+        }
+        
+        Serial.printf("Page %d read failed, attempt %d/%d\n", page, attempt + 1, MAX_READ_ATTEMPTS);
+        
+        // Try to stabilize connection between attempts
+        if (attempt < MAX_READ_ATTEMPTS - 1) {
+            vTaskDelay(pdMS_TO_TICKS(25));
+            
+            // Re-verify tag presence with quick check
+            uint8_t uid[7];
+            uint8_t uidLength;
+            if (!nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 100)) {
+                Serial.println("Tag lost during read operation");
+                return false;
+            }
+        }
+    }
+    
+    return false;
+}
+
 String detectNtagType()
 {
   // Read capability container from page 3 to determine exact NTAG type
@@ -1728,37 +1759,6 @@ void startWriteJsonToTag(const bool isSpoolTag, const char* payload) {
     oledShowProgressBar(0, 1, "FAILURE", "NFC busy!");
     // TBD: Add proper error handling (website)
   }
-}
-
-// Robust page reading with error recovery
-bool robustPageRead(uint8_t page, uint8_t* buffer) {
-    const int MAX_READ_ATTEMPTS = 3;
-    
-    for (int attempt = 0; attempt < MAX_READ_ATTEMPTS; attempt++) {
-        esp_task_wdt_reset();
-        yield();
-        
-        if (nfc.ntag2xx_ReadPage(page, buffer)) {
-            return true;
-        }
-        
-        Serial.printf("Page %d read failed, attempt %d/%d\n", page, attempt + 1, MAX_READ_ATTEMPTS);
-        
-        // Try to stabilize connection between attempts
-        if (attempt < MAX_READ_ATTEMPTS - 1) {
-            vTaskDelay(pdMS_TO_TICKS(25));
-            
-            // Re-verify tag presence with quick check
-            uint8_t uid[7];
-            uint8_t uidLength;
-            if (!nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 100)) {
-                Serial.println("Tag lost during read operation");
-                return false;
-            }
-        }
-    }
-    
-    return false;
 }
 
 // Safe tag detection with manual retry logic and short timeouts
