@@ -14,11 +14,11 @@ TaskHandle_t ScaleTask;
 int16_t weight = 0;
 
 // Weight stabilization variables
-#define MOVING_AVERAGE_SIZE 20          // Number of samples for moving average
-#define LOW_PASS_ALPHA 0.15f           // Low-pass filter coefficient (0.1-0.2 works well)
-#define DISPLAY_THRESHOLD 0.5f         // Only update display if change > 0.5g
-#define API_THRESHOLD 2.0f             // Only trigger API actions if change > 2g
-#define MEASUREMENT_INTERVAL_MS 50     // Measurement interval in milliseconds
+#define MOVING_AVERAGE_SIZE 8           // Reduced from 20 to 8 for faster response
+#define LOW_PASS_ALPHA 0.3f            // Increased from 0.15 to 0.3 for faster tracking
+#define DISPLAY_THRESHOLD 0.3f         // Reduced from 0.5 to 0.3g for more responsive display
+#define API_THRESHOLD 1.5f             // Reduced from 2.0 to 1.5g for faster API actions
+#define MEASUREMENT_INTERVAL_MS 30     // Reduced from 50ms to 30ms for faster updates
 
 float weightBuffer[MOVING_AVERAGE_SIZE];
 uint8_t bufferIndex = 0;
@@ -110,9 +110,6 @@ int16_t processWeightReading(float rawWeight) {
   if (abs(newWeight - lastStableWeight) >= API_THRESHOLD) {
     lastStableWeight = newWeight;
     weightToReturn = newWeight;
-    
-    Serial.printf("Stable weight change detected: %d -> %d (diff: %d)\n", 
-                 weight, newWeight, abs(newWeight - weight));
   }
   
   return weightToReturn;
@@ -196,14 +193,11 @@ void scale_loop(void * parameter) {
         // Update global weight variable only if it changed significantly (for API actions)
         if (stabilizedWeight != weight) {
           weight = stabilizedWeight;
-          Serial.printf("API weight updated: %d\n", weight);
         }
         
         // Debug output for monitoring (can be removed in production)
         static unsigned long lastDebugTime = 0;
         if (currentTime - lastDebugTime > 2000) { // Print every 2 seconds
-          Serial.printf("Raw: %.2f, Filtered: %.2f, Display: %d, API: %d\n", 
-                       rawWeight, filteredWeight, lastDisplayedWeight, weight);
           lastDebugTime = currentTime;
         }
         
