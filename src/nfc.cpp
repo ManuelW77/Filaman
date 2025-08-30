@@ -1678,9 +1678,75 @@ void startWriteJsonToTag(const bool isSpoolTag, const char* payload) {
   }
 }
 
+// Robust page reading with error recovery
+bool robustPageRead(uint8_t page, uint8_t* buffer) {
+    const int MAX_READ_ATTEMPTS = 3;
+    
+    for (int attempt = 0; attempt < MAX_READ_ATTEMPTS; attempt++) {
+        esp_task_wdt_reset();
+        yield();
+        
+        if (nfc.ntag2xx_ReadPage(page, buffer)) {
+            return true;
+        }
+        
+        Serial.printf("Page %d read failed, attempt %d/%d\n", page, attempt + 1, MAX_READ_ATTEMPTS);
+        
+        // Try to stabilize connection between attempts
+        if (attempt < MAX_READ_ATTEMPTS - 1) {
+            vTaskDelay(pdMS_TO_TICKS(25));
+            
+            // Re-verify tag presence with quick check
+            uint8_t uid[7];
+            uint8_t uidLength;
+            if (!nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 100)) {
+                Serial.println("Tag lost during read operation");
+                return false;
+            }
+        }
+    }
+    
+    return false;
+}
+
+// Safe tag detection with manual retry logic and short timeouts
+bool safeTagDetection(uint8_t* uid, uint8_t* uidLength) {
+    const int MAX_ATTEMPTS = 3;
+    const int SHORT_TIMEOUT = 100; // Very short timeout to prevent hanging
+    
+    for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        // Watchdog reset on each attempt
+        esp_task_wdt_reset();
+        yield();
+        
+        // Use short timeout to avoid blocking
+        bool success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, uidLength, SHORT_TIMEOUT);
+        
+        if (success) {
+            Serial.printf("✓ Tag detected on attempt %d with %dms timeout\n", attempt + 1, SHORT_TIMEOUT);
+            return true;
+        }
+        
+        // Short pause between attempts
+        vTaskDelay(pdMS_TO_TICKS(25));
+        
+        // Refresh RF field after failed attempt (but not on last attempt)
+        if (attempt < MAX_ATTEMPTS - 1) {
+            nfc.SAMConfig();
+            vTaskDelay(pdMS_TO_TICKS(10));
+        }
+    }
+    
+    return false;
+}
+
 void scanRfidTask(void * parameter) {
   Serial.println("RFID Task gestartet");
   for(;;) {
+    // Regular watchdog reset
+    esp_task_wdt_reset();
+    yield();
+    
     // Skip scanning during write operations, but keep NFC interface active
     if (nfcReaderState != NFC_WRITING && !nfcWriteInProgress && !nfcReadingTaskSuspendRequest && !booting)
     {
@@ -1691,7 +1757,8 @@ void scanRfidTask(void * parameter) {
       uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
       uint8_t uidLength;
 
-      success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 500);
+      // Use safe tag detection instead of blocking readPassiveTargetID
+      success = safeTagDetection(uid, &uidLength);
 
       foundNfcTag(nullptr, success);
       
@@ -1708,9 +1775,9 @@ void scanRfidTask(void * parameter) {
 
         oledShowProgressBar(0, octoEnabled?5:4, "Reading", "Detecting tag");
 
-        // Wait 1 second after tag detection to stabilize connection
-        Serial.println("Tag detected, waiting 1 second for stabilization...");
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        // Reduced stabilization time for better responsiveness
+        Serial.println("Tag detected, minimal stabilization...");
+        vTaskDelay(200 / portTICK_PERIOD_MS); // Reduced from 1000ms to 200ms
 
         // create Tag UID string
         String uidString = "";
@@ -1753,9 +1820,10 @@ void scanRfidTask(void * parameter) {
             
             for (uint8_t i = 4; i < 4+numPages; i++) {
               
-              if (!nfc.ntag2xx_ReadPage(i, data+(i-4) * 4))
+              if (!robustPageRead(i, data+(i-4) * 4))
               {
-                break; // Stop if reading fails
+                Serial.printf("Failed to read page %d after retries, stopping\n", i);
+                break; // Stop if reading fails after retries
               }
              
               // Check for NDEF message end
@@ -1767,8 +1835,8 @@ void scanRfidTask(void * parameter) {
 
               yield();
               esp_task_wdt_reset();
-              // Increased delay to ensure stable reading
-              vTaskDelay(pdMS_TO_TICKS(5)); // Increased from 1ms to 5ms
+              // Reduced delay for faster reading
+              vTaskDelay(pdMS_TO_TICKS(2)); // Reduced from 5ms to 2ms
             }
             
             Serial.println("Tag reading completed, starting NDEF decode...");
@@ -1815,10 +1883,13 @@ void scanRfidTask(void * parameter) {
         Serial.println("Tag nach erfolgreichem Lesen entfernt - bereit für nächsten Tag");
       }
 
-      // Add a longer pause after successful reading to prevent immediate re-reading
+      // Add a pause after successful reading to prevent immediate re-reading
       if (nfcReaderState == NFC_READ_SUCCESS) {
-        Serial.println("Tag erfolgreich gelesen - warte 5 Sekunden vor nächstem Scan");
-        vTaskDelay(5000 / portTICK_PERIOD_MS); // 5 second pause
+        Serial.println("Tag erfolgreich gelesen - warte 3 Sekunden vor nächstem Scan");
+        vTaskDelay(3000 / portTICK_PERIOD_MS); // Reduced from 5 seconds to 3 seconds
+      } else {
+        // Faster scanning when no tag or idle state
+        vTaskDelay(150 / portTICK_PERIOD_MS); // Faster scan interval
       }
 
       // aktualisieren der Website wenn sich der Status ändert
