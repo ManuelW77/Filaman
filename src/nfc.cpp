@@ -1299,6 +1299,61 @@ bool decodeNdefAndReturnJson(const byte* encodedMessage, String uidString) {
   return true;
 }
 
+// Read complete JSON data for fast-path to enable web interface display
+bool readCompleteJsonForFastPath() {
+    Serial.println("=== FAST-PATH: Reading complete JSON for web interface ===");
+    
+    // Read tag size first
+    uint16_t tagSize = readTagSize();
+    if (tagSize == 0) {
+        Serial.println("FAST-PATH: Could not determine tag size");
+        return false;
+    }
+    
+    // Create buffer for complete data
+    uint8_t* data = (uint8_t*)malloc(tagSize);
+    if (!data) {
+        Serial.println("FAST-PATH: Could not allocate memory for complete read");
+        return false;
+    }
+    memset(data, 0, tagSize);
+    
+    // Read all pages
+    uint8_t numPages = tagSize / 4;
+    for (uint8_t i = 4; i < 4 + numPages; i++) {
+        if (!robustPageRead(i, data + (i - 4) * 4)) {
+            Serial.printf("FAST-PATH: Failed to read page %d\n", i);
+            free(data);
+            return false;
+        }
+        
+        // Check for NDEF message end
+        if (data[(i - 4) * 4] == 0xFE) {
+            Serial.println("FAST-PATH: Found NDEF message end marker");
+            break;
+        }
+        
+        yield();
+        esp_task_wdt_reset();
+        vTaskDelay(pdMS_TO_TICKS(2));
+    }
+    
+    // Decode NDEF and extract JSON
+    bool success = decodeNdefAndReturnJson(data, ""); // Empty UID string for fast-path
+    
+    free(data);
+    
+    if (success) {
+        Serial.println("✓ FAST-PATH: Complete JSON data successfully loaded");
+        Serial.print("nfcJsonData length: ");
+        Serial.println(nfcJsonData.length());
+    } else {
+        Serial.println("✗ FAST-PATH: Failed to decode complete JSON data");
+    }
+    
+    return success;
+}
+
 bool quickSpoolIdCheck(String uidString) {
     // Fast-path: Read NDEF structure to quickly locate and check JSON payload
     // This dramatically speeds up known spool recognition
@@ -1436,6 +1491,14 @@ bool quickSpoolIdCheck(String uidString) {
                     activeSpoolId = quickSpoolId;
                     lastSpoolId = activeSpoolId;
                     
+                    // Read complete JSON data for web interface display
+                    Serial.println("FAST-PATH: Reading complete JSON data for web interface...");
+                    if (readCompleteJsonForFastPath()) {
+                        Serial.println("✓ FAST-PATH: Complete JSON data loaded for web interface");
+                    } else {
+                        Serial.println("⚠ FAST-PATH: Could not read complete JSON, web interface may show limited data");
+                    }
+                    
                     oledShowProgressBar(2, octoEnabled?5:4, "Known Spool", "Quick mode");
                     Serial.println("✓ FAST-PATH SUCCESS: Known spool processed quickly");
                     return true;
@@ -1483,6 +1546,14 @@ bool quickSpoolIdCheck(String uidString) {
                 activeSpoolId = quickSpoolId;
                 lastSpoolId = activeSpoolId;
                 
+                // Read complete JSON data for web interface display
+                Serial.println("FAST-PATH: Reading complete JSON data for web interface...");
+                if (readCompleteJsonForFastPath()) {
+                    Serial.println("✓ FAST-PATH: Complete JSON data loaded for web interface");
+                } else {
+                    Serial.println("⚠ FAST-PATH: Could not read complete JSON, web interface may show limited data");
+                }
+                
                 oledShowProgressBar(2, octoEnabled?5:4, "Known Spool", "Quick mode");
                 Serial.println("✓ FAST-PATH SUCCESS: Known spool processed quickly");
                 return true;
@@ -1529,6 +1600,10 @@ void writeJsonToTag(void *parameter) {
   // aktualisieren der Website wenn sich der Status ändert
   sendNfcData();
   vTaskDelay(100 / portTICK_PERIOD_MS);
+  
+  // Show waiting message for tag detection
+  oledShowProgressBar(0, 1, "Write Tag", "Warte auf Tag");
+  
   // Wait 10sec for tag
   uint8_t success = 0;
   String uidString = "";
