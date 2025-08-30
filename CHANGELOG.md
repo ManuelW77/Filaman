@@ -25,6 +25,7 @@
 - Add vendor and filament management to API; implement recycling factory handling in NFC
 
 ### Changed
+- update changelog and header for version v2.0.0-beta11
 - update platformio.ini for beta version v2.0.0-beta11
 - update changelog and header for version v2.0.0-beta10
 - update platformio.ini for beta version v2.0.0-beta10
@@ -111,7 +112,6 @@
 - correct color_hex key usage and comment out unused date fields in spool creation
 - improve API state handling and vendor name formatting
 - enhance filament creation logic to include dynamic comments based on payload
-
 
 ## [2.0.0-beta10] - 2025-08-30
 ### Breaking Changes
