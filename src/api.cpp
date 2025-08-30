@@ -124,28 +124,69 @@ void sendToApi(void *parameter) {
     String octoToken = params->octoToken;
     bool triggerWeightUpdate = params->triggerWeightUpdate;
     String spoolIdForWeight = params->spoolIdForWeight;
-    uint16_t weightValue = params->weightValue;    
+    uint16_t weightValue = params->weightValue;
 
-    HTTPClient http;
-    http.setReuse(false);
+    // Retry mechanism with configurable parameters
+    const uint8_t MAX_RETRIES = 3;
+    const uint16_t RETRY_DELAY_MS = 1000; // 1 second between retries
+    const uint16_t HTTP_TIMEOUT_MS = 10000; // 10 second HTTP timeout
+    
+    bool success = false;
+    int httpCode = -1;
+    String responsePayload = "";
+    
+    // Try request with retries
+    for (uint8_t attempt = 1; attempt <= MAX_RETRIES && !success; attempt++) {
+        Serial.printf("API Request attempt %d/%d to: %s\n", attempt, MAX_RETRIES, spoolsUrl.c_str());
+        
+        HTTPClient http;
+        http.setReuse(false);
+        http.setTimeout(HTTP_TIMEOUT_MS); // Set HTTP timeout
+        
+        http.begin(spoolsUrl);
+        http.addHeader("Content-Type", "application/json");
+        if (octoEnabled && octoToken != "") http.addHeader("X-Api-Key", octoToken);
 
-    http.begin(spoolsUrl);
-    http.addHeader("Content-Type", "application/json");
-    if (octoEnabled && octoToken != "") http.addHeader("X-Api-Key", octoToken);
+        // Execute HTTP request based on type
+        if (httpType == "PATCH") httpCode = http.PATCH(updatePayload);
+        else if (httpType == "POST") httpCode = http.POST(updatePayload);
+        else if (httpType == "GET") httpCode = http.GET();
+        else httpCode = http.PUT(updatePayload);
 
-    int httpCode;
-    if (httpType == "PATCH") httpCode = http.PATCH(updatePayload);
-    else if (httpType == "POST") httpCode = http.POST(updatePayload);
-    else if (httpType == "GET") httpCode = http.GET();
-    else httpCode = http.PUT(updatePayload);
+        // Check if request was successful
+        if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_CREATED) {
+            responsePayload = http.getString();
+            success = true;
+            Serial.printf("API Request successful on attempt %d, HTTP Code: %d\n", attempt, httpCode);
+        } else {
+            Serial.printf("API Request failed on attempt %d, HTTP Code: %d (%s)\n", 
+                         attempt, httpCode, http.errorToString(httpCode).c_str());
+            
+            // Don't retry on certain error codes (client errors)
+            if (httpCode >= 400 && httpCode < 500 && httpCode != 408 && httpCode != 429) {
+                Serial.println("Client error detected, stopping retries");
+                break;
+            }
+            
+            // Wait before retry (except on last attempt)
+            if (attempt < MAX_RETRIES) {
+                Serial.printf("Waiting %dms before retry...\n", RETRY_DELAY_MS);
+                http.end();
+                vTaskDelay(RETRY_DELAY_MS / portTICK_PERIOD_MS);
+                continue;
+            }
+        }
+        
+        http.end();
+    }
 
-    if (httpCode == HTTP_CODE_OK) {
+    // Process successful response
+    if (success) {
         Serial.println("Spoolman Abfrage erfolgreich");
 
         // Restgewicht der Spule auslesen
-        String payload = http.getString();
         JsonDocument doc;
-        DeserializationError error = deserializeJson(doc, payload);
+        DeserializationError error = deserializeJson(doc, responsePayload);
         if (error) {
             Serial.print("Fehler beim Parsen der JSON-Antwort: ");
             Serial.println(error.c_str());
@@ -225,10 +266,9 @@ void sendToApi(void *parameter) {
     } else if (httpCode == HTTP_CODE_CREATED) {
         Serial.println("Spoolman erfolgreich erstellt");
         
-        // Parse response for created resources
-        String payload = http.getString();
+        // Parse response for created resources  
         JsonDocument doc;
-        DeserializationError error = deserializeJson(doc, payload);
+        DeserializationError error = deserializeJson(doc, responsePayload);
         if (error) {
             Serial.print("Fehler beim Parsen der JSON-Antwort: ");
             Serial.println(error.c_str());
@@ -280,14 +320,17 @@ void sendToApi(void *parameter) {
             Serial.println(weightPayload);
 
             // Execute weight update
-            http.begin(weightUrl);
-            http.addHeader("Content-Type", "application/json");
+            HTTPClient weightHttp;
+            weightHttp.setReuse(false);
+            weightHttp.setTimeout(HTTP_TIMEOUT_MS);
+            weightHttp.begin(weightUrl);
+            weightHttp.addHeader("Content-Type", "application/json");
             
-            int weightHttpCode = http.PUT(weightPayload);
+            int weightHttpCode = weightHttp.PUT(weightPayload);
             
             if (weightHttpCode == HTTP_CODE_OK) {
                 Serial.println("Weight update successful");
-                String weightResponse = http.getString();
+                String weightResponse = weightHttp.getString();
                 JsonDocument weightResponseDoc;
                 DeserializationError weightError = deserializeJson(weightResponseDoc, weightResponse);
                 
@@ -310,6 +353,7 @@ void sendToApi(void *parameter) {
                 oledShowProgressBar(1, 1, "Failure!", "Weight update");
             }
             
+            weightHttp.end();
             weightDoc.clear();
         }
     } else {
@@ -351,7 +395,6 @@ void sendToApi(void *parameter) {
         nfcReaderState = NFC_IDLE; // Reset NFC state to allow retry
     }
 
-    http.end();
     vTaskDelay(50 / portTICK_PERIOD_MS);
 
     // Speicher freigeben
@@ -687,20 +730,8 @@ uint16_t createVendor(const JsonDocument& payload) {
 
     // Wait for task completion and return the created vendor ID
     // Note: createdVendorId will be set by sendToApi when response is received
-    uint16_t timeout_counter = 0;
-    const uint16_t max_timeout = 200; // 10 seconds timeout (200 * 50ms)
-    
-    while(createdVendorId == 65535 && timeout_counter < max_timeout) {
+    while(createdVendorId == 65535) {
         vTaskDelay(50 / portTICK_PERIOD_MS);
-        timeout_counter++;
-    }
-    
-    // Check if we got a valid response or timed out
-    if (createdVendorId == 65535) {
-        Serial.println("ERROR: Timeout waiting for vendor creation response");
-        createdVendorId = 0; // Set to error state
-        nfcReaderState = NFC_IDLE; // Reset NFC state
-        return 0;
     }
     
     return createdVendorId;
@@ -746,21 +777,9 @@ uint16_t checkVendor(const JsonDocument& payload) {
     );
     
     // Wait until foundVendorId is updated by the API response (not 65535 anymore)
-    uint16_t timeout_counter = 0;
-    const uint16_t max_timeout = 200; // 10 seconds timeout (200 * 50ms)
-    
-    while (foundVendorId == 65535 && timeout_counter < max_timeout)
+    while (foundVendorId == 65535)
     {
         vTaskDelay(50 / portTICK_PERIOD_MS);
-        timeout_counter++;
-    }
-    
-    // Check for timeout
-    if (foundVendorId == 65535) {
-        Serial.println("ERROR: Timeout waiting for vendor check response");
-        foundVendorId = 0; // Set to error state
-        nfcReaderState = NFC_IDLE; // Reset NFC state
-        return 0;
     }
 
     // Check if vendor was found
@@ -866,26 +885,8 @@ uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
 
     // Wait for task completion and return the created filament ID
     // Note: createdFilamentId will be set by sendToApi when response is received
-    uint16_t timeout_counter = 0;
-    const uint16_t max_timeout = 200; // 10 seconds timeout (200 * 50ms)
-    
-    while(createdFilamentId == 65535 && timeout_counter < max_timeout) {
+    while(createdFilamentId == 65535) {
         vTaskDelay(50 / portTICK_PERIOD_MS);
-        timeout_counter++;
-    }
-    
-    // Check if we got a valid response or timed out
-    if (createdFilamentId == 65535) {
-        Serial.println("ERROR: Timeout waiting for filament creation response");
-        createdFilamentId = 0; // Set to error state
-        nfcReaderState = NFC_IDLE; // Reset NFC state
-        return 0;
-    }
-    
-    if (createdFilamentId == 0) {
-        Serial.println("ERROR: Filament creation failed (HTTP error)");
-        nfcReaderState = NFC_IDLE; // Reset NFC state
-        return 0;
     }
     
     return createdFilamentId;
@@ -922,20 +923,8 @@ uint16_t checkFilament(uint16_t vendorId, const JsonDocument& payload) {
     );
     
     // Wait until foundFilamentId is updated by the API response (not 65535 anymore)
-    uint16_t timeout_counter = 0;
-    const uint16_t max_timeout = 200; // 10 seconds timeout (200 * 50ms)
-    
-    while (foundFilamentId == 65535 && timeout_counter < max_timeout) {
+    while (foundFilamentId == 65535) {
         vTaskDelay(50 / portTICK_PERIOD_MS);
-        timeout_counter++;
-    }
-    
-    // Check for timeout
-    if (foundFilamentId == 65535) {
-        Serial.println("ERROR: Timeout waiting for filament check response");
-        foundFilamentId = 0; // Set to error state
-        nfcReaderState = NFC_IDLE; // Reset NFC state
-        return 0;
     }
 
     // Check if filament was found
@@ -1014,24 +1003,13 @@ uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& paylo
     
     // Wait for task completion and return the created spool ID
     // Note: createdSpoolId will be set by sendToApi when response is received
-    uint16_t timeout_counter = 0;
-    const uint16_t max_timeout = 200; // 10 seconds timeout (200 * 50ms)
-    
-    while(createdSpoolId == 65535 && timeout_counter < max_timeout) {
+    while(createdSpoolId == 65535) {
         vTaskDelay(50 / portTICK_PERIOD_MS);
-        timeout_counter++;
     }
     
-    // Check if we got a valid response or timed out
-    if (createdSpoolId == 65535) {
-        Serial.println("ERROR: Timeout waiting for spool creation response");
-        createdSpoolId = 0; // Set to error state
-        nfcReaderState = NFC_IDLE; // Reset NFC state
-        return 0;
-    }
-    
+    // Check if spool creation was successful
     if (createdSpoolId == 0) {
-        Serial.println("ERROR: Spool creation failed (HTTP error)");
+        Serial.println("ERROR: Spool creation failed");
         nfcReaderState = NFC_IDLE; // Reset NFC state
         return 0;
     }
