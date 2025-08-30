@@ -14,10 +14,27 @@ def get_version():
         return version_match.group(1) if version_match else None
 
 def get_last_tag():
+    """Get the last non-beta tag for changelog generation"""
     try:
-        result = subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], 
+        # Get all tags sorted by version
+        result = subprocess.run(['git', 'tag', '-l', '--sort=-version:refname'], 
                               capture_output=True, text=True)
-        return result.stdout.strip()
+        if result.returncode != 0:
+            return None
+            
+        tags = result.stdout.strip().split('\n')
+        
+        # Find the first (newest) non-beta tag
+        for tag in tags:
+            if tag and not '-beta' in tag.lower():
+                print(f"Using last stable tag for changelog: {tag}")
+                return tag
+        
+        # Fallback: if no non-beta tags found, use the newest tag
+        print("No stable tags found, using newest tag")
+        if tags and tags[0]:
+            return tags[0]
+        return None
     except subprocess.CalledProcessError:
         return None
 
