@@ -250,6 +250,25 @@ void loop() {
       }
     }
 
+    // Handle successful tag write: Send weight to Spoolman but NEVER auto-send to Bambu
+    if (activeSpoolId != "" && weigthCouterToApi > 3 && weightSend == 0 && nfcReaderState == NFC_WRITE_SUCCESS && tagProcessed == false && spoolmanApiState == API_IDLE) 
+    {
+      // set the current tag as processed to prevent it beeing processed again
+      tagProcessed = true;
+
+      if (updateSpoolWeight(activeSpoolId, weight)) 
+      {
+        weightSend = 1;
+        Serial.println("Tag written: Weight sent to Spoolman, but NO auto-send to Bambu");
+        // INTENTIONALLY do NOT set autoSetToBambuSpoolId here to prevent Bambu auto-send
+      }
+      else
+      {
+        oledShowIcon("failed");
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
+      }
+    }
+
     if(octoEnabled && sendOctoUpdate && spoolmanApiState == API_IDLE)
     {
       updateSpoolOcto(autoSetToBambuSpoolId);
