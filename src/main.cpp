@@ -178,9 +178,11 @@ void loop() {
     // Ausgabe der Waage auf Display
     if(pauseMainTask == 0)
     {
+      // Use filtered weight for smooth display, but still check API weight for significant changes
+      int16_t displayWeight = getFilteredDisplayWeight();
       if (mainTaskWasPaused || (weight != lastWeight && nfcReaderState == NFC_IDLE && (!bambuCredentials.autosend_enable || autoSetToBambuSpoolId == 0)))
       {
-        (weight < 2) ? ((weight < -2) ? oledShowMessage("!! -0") : oledShowWeight(0)) : oledShowWeight(weight);
+        (displayWeight < 2) ? ((displayWeight < -2) ? oledShowMessage("!! -0") : oledShowWeight(0)) : oledShowWeight(displayWeight);
       }
       mainTaskWasPaused = false;
     }

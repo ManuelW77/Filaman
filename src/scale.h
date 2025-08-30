@@ -14,6 +14,7 @@ void resetWeightFilter();
 float calculateMovingAverage();
 float applyLowPassFilter(float newValue);
 int16_t processWeightReading(float rawWeight);
+int16_t getFilteredDisplayWeight();
 
 extern HX711 scale;
 extern int16_t weight;

@@ -17,6 +17,7 @@ int16_t weight = 0;
 #define MOVING_AVERAGE_SIZE 20          // Number of samples for moving average
 #define LOW_PASS_ALPHA 0.15f           // Low-pass filter coefficient (0.1-0.2 works well)
 #define DISPLAY_THRESHOLD 0.5f         // Only update display if change > 0.5g
+#define API_THRESHOLD 2.0f             // Only trigger API actions if change > 2g
 #define MEASUREMENT_INTERVAL_MS 50     // Measurement interval in milliseconds
 
 float weightBuffer[MOVING_AVERAGE_SIZE];
@@ -24,6 +25,7 @@ uint8_t bufferIndex = 0;
 bool bufferFilled = false;
 float filteredWeight = 0.0f;
 int16_t lastDisplayedWeight = 0;
+int16_t lastStableWeight = 0;        // For API/action triggering
 unsigned long lastMeasurementTime = 0;
 
 uint8_t weigthCouterToApi = 0;
@@ -44,6 +46,7 @@ void resetWeightFilter() {
   bufferFilled = false;
   filteredWeight = 0.0f;
   lastDisplayedWeight = 0;
+  lastStableWeight = 0;            // Reset stable weight for API actions
   
   // Initialize buffer with zeros
   for (int i = 0; i < MOVING_AVERAGE_SIZE; i++) {
@@ -96,13 +99,31 @@ int16_t processWeightReading(float rawWeight) {
   // Round to nearest gram
   int16_t newWeight = round(smoothedWeight);
   
-  // Only update displayed weight if change is significant
+  // Update displayed weight if display threshold is reached
   if (abs(newWeight - lastDisplayedWeight) >= DISPLAY_THRESHOLD) {
     lastDisplayedWeight = newWeight;
-    return newWeight;
   }
   
-  return weight; // Return current weight if change is too small
+  // Update global weight for API actions only if stable threshold is reached
+  int16_t weightToReturn = weight; // Default: keep current weight
+  
+  if (abs(newWeight - lastStableWeight) >= API_THRESHOLD) {
+    lastStableWeight = newWeight;
+    weightToReturn = newWeight;
+    
+    Serial.printf("Stable weight change detected: %d -> %d (diff: %d)\n", 
+                 weight, newWeight, abs(newWeight - weight));
+  }
+  
+  return weightToReturn;
+}
+
+/**
+ * Get current filtered weight for display purposes
+ * This returns the smoothed weight even if it hasn't triggered API actions
+ */
+int16_t getFilteredDisplayWeight() {
+  return lastDisplayedWeight;
 }
 
 // ##### Funktionen für Waage #####
@@ -172,17 +193,18 @@ void scale_loop(void * parameter) {
         // Process weight with stabilization
         int16_t stabilizedWeight = processWeightReading(rawWeight);
         
-        // Update global weight variable only if it changed
+        // Update global weight variable only if it changed significantly (for API actions)
         if (stabilizedWeight != weight) {
           weight = stabilizedWeight;
-          
-          // Debug output for monitoring (can be removed in production)
-          static unsigned long lastDebugTime = 0;
-          if (currentTime - lastDebugTime > 1000) { // Print every second
-            Serial.printf("Raw: %.2f, Filtered: %.2f, Final: %d\n", 
-                         rawWeight, filteredWeight, weight);
-            lastDebugTime = currentTime;
-          }
+          Serial.printf("API weight updated: %d\n", weight);
+        }
+        
+        // Debug output for monitoring (can be removed in production)
+        static unsigned long lastDebugTime = 0;
+        if (currentTime - lastDebugTime > 2000) { // Print every 2 seconds
+          Serial.printf("Raw: %.2f, Filtered: %.2f, Display: %d, API: %d\n", 
+                       rawWeight, filteredWeight, lastDisplayedWeight, weight);
+          lastDebugTime = currentTime;
         }
         
         lastMeasurementTime = currentTime;
