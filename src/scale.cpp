@@ -122,8 +122,8 @@ void start_scale(bool touchSensorConnected) {
   }
 
   scale.set_scale(calibrationValue);
-  vTaskDelay(pdMS_TO_TICKS(5000));
-  scale.tare();
+  //vTaskDelay(pdMS_TO_TICKS(5000));
+  //scale.tare();
 
   // Display Gewicht
   oledShowWeight(0);
