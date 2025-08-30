@@ -325,14 +325,25 @@ void sendToApi(void *parameter) {
         case API_REQUEST_BAMBU_UPDATE:
             oledShowProgressBar(1, 1, "Failure!", "Bambu update");
             break;
+        case API_REQUEST_VENDOR_CHECK:
+            oledShowProgressBar(1, 1, "Failure!", "Vendor check");
+            foundVendorId = 0; // Set to 0 to indicate error/not found
+            break;
         case API_REQUEST_VENDOR_CREATE:
             oledShowProgressBar(1, 1, "Failure!", "Vendor create");
+            createdVendorId = 0; // Set to 0 to indicate error
+            break;
+        case API_REQUEST_FILAMENT_CHECK:
+            oledShowProgressBar(1, 1, "Failure!", "Filament check");
+            foundFilamentId = 0; // Set to 0 to indicate error/not found
             break;
         case API_REQUEST_FILAMENT_CREATE:
             oledShowProgressBar(1, 1, "Failure!", "Filament create");
+            createdFilamentId = 0; // Set to 0 to indicate error
             break;
         case API_REQUEST_SPOOL_CREATE:
             oledShowProgressBar(1, 1, "Failure!", "Spool create");
+            createdSpoolId = 0; // Set to 0 to indicate error instead of hanging
             break;
         }
         Serial.println("Fehler beim Senden an Spoolman! HTTP Code: " + String(httpCode));
@@ -676,8 +687,20 @@ uint16_t createVendor(const JsonDocument& payload) {
 
     // Wait for task completion and return the created vendor ID
     // Note: createdVendorId will be set by sendToApi when response is received
-    while(createdVendorId == 65535) {
+    uint16_t timeout_counter = 0;
+    const uint16_t max_timeout = 200; // 10 seconds timeout (200 * 50ms)
+    
+    while(createdVendorId == 65535 && timeout_counter < max_timeout) {
         vTaskDelay(50 / portTICK_PERIOD_MS);
+        timeout_counter++;
+    }
+    
+    // Check if we got a valid response or timed out
+    if (createdVendorId == 65535) {
+        Serial.println("ERROR: Timeout waiting for vendor creation response");
+        createdVendorId = 0; // Set to error state
+        nfcReaderState = NFC_IDLE; // Reset NFC state
+        return 0;
     }
     
     return createdVendorId;
@@ -723,9 +746,21 @@ uint16_t checkVendor(const JsonDocument& payload) {
     );
     
     // Wait until foundVendorId is updated by the API response (not 65535 anymore)
-    while (foundVendorId == 65535)
+    uint16_t timeout_counter = 0;
+    const uint16_t max_timeout = 200; // 10 seconds timeout (200 * 50ms)
+    
+    while (foundVendorId == 65535 && timeout_counter < max_timeout)
     {
         vTaskDelay(50 / portTICK_PERIOD_MS);
+        timeout_counter++;
+    }
+    
+    // Check for timeout
+    if (foundVendorId == 65535) {
+        Serial.println("ERROR: Timeout waiting for vendor check response");
+        foundVendorId = 0; // Set to error state
+        nfcReaderState = NFC_IDLE; // Reset NFC state
+        return 0;
     }
 
     // Check if vendor was found
@@ -831,8 +866,26 @@ uint16_t createFilament(uint16_t vendorId, const JsonDocument& payload) {
 
     // Wait for task completion and return the created filament ID
     // Note: createdFilamentId will be set by sendToApi when response is received
-    while(createdFilamentId == 65535) {
+    uint16_t timeout_counter = 0;
+    const uint16_t max_timeout = 200; // 10 seconds timeout (200 * 50ms)
+    
+    while(createdFilamentId == 65535 && timeout_counter < max_timeout) {
         vTaskDelay(50 / portTICK_PERIOD_MS);
+        timeout_counter++;
+    }
+    
+    // Check if we got a valid response or timed out
+    if (createdFilamentId == 65535) {
+        Serial.println("ERROR: Timeout waiting for filament creation response");
+        createdFilamentId = 0; // Set to error state
+        nfcReaderState = NFC_IDLE; // Reset NFC state
+        return 0;
+    }
+    
+    if (createdFilamentId == 0) {
+        Serial.println("ERROR: Filament creation failed (HTTP error)");
+        nfcReaderState = NFC_IDLE; // Reset NFC state
+        return 0;
     }
     
     return createdFilamentId;
@@ -869,8 +922,20 @@ uint16_t checkFilament(uint16_t vendorId, const JsonDocument& payload) {
     );
     
     // Wait until foundFilamentId is updated by the API response (not 65535 anymore)
-    while (foundFilamentId == 65535) {
+    uint16_t timeout_counter = 0;
+    const uint16_t max_timeout = 200; // 10 seconds timeout (200 * 50ms)
+    
+    while (foundFilamentId == 65535 && timeout_counter < max_timeout) {
         vTaskDelay(50 / portTICK_PERIOD_MS);
+        timeout_counter++;
+    }
+    
+    // Check for timeout
+    if (foundFilamentId == 65535) {
+        Serial.println("ERROR: Timeout waiting for filament check response");
+        foundFilamentId = 0; // Set to error state
+        nfcReaderState = NFC_IDLE; // Reset NFC state
+        return 0;
     }
 
     // Check if filament was found
@@ -949,8 +1014,26 @@ uint16_t createSpool(uint16_t vendorId, uint16_t filamentId, JsonDocument& paylo
     
     // Wait for task completion and return the created spool ID
     // Note: createdSpoolId will be set by sendToApi when response is received
-    while(createdSpoolId == 65535) {
+    uint16_t timeout_counter = 0;
+    const uint16_t max_timeout = 200; // 10 seconds timeout (200 * 50ms)
+    
+    while(createdSpoolId == 65535 && timeout_counter < max_timeout) {
         vTaskDelay(50 / portTICK_PERIOD_MS);
+        timeout_counter++;
+    }
+    
+    // Check if we got a valid response or timed out
+    if (createdSpoolId == 65535) {
+        Serial.println("ERROR: Timeout waiting for spool creation response");
+        createdSpoolId = 0; // Set to error state
+        nfcReaderState = NFC_IDLE; // Reset NFC state
+        return 0;
+    }
+    
+    if (createdSpoolId == 0) {
+        Serial.println("ERROR: Spool creation failed (HTTP error)");
+        nfcReaderState = NFC_IDLE; // Reset NFC state
+        return 0;
     }
 
     // Write data to tag with startWriteJsonToTag
