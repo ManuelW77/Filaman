@@ -1650,7 +1650,30 @@ void writeJsonToTag(void *parameter) {
         if(params->tagType){
           // TBD: should this be simplified?
           if (updateSpoolTagId(uidString, params->payload) && params->tagType) {
-            
+            // Check if weight is over 20g and send to Spoolman
+            if (weight > 20) {
+              Serial.println("Tag successfully written and weight > 20g - sending weight to Spoolman");
+              
+              // Extract spool ID from payload for weight update
+              JsonDocument payloadDoc;
+              DeserializationError error = deserializeJson(payloadDoc, params->payload);
+              
+              if (!error && payloadDoc["sm_id"].is<String>()) {
+                String spoolId = payloadDoc["sm_id"].as<String>();
+                if (spoolId != "") {
+                  Serial.printf("Updating spool %s with weight %dg\n", spoolId.c_str(), weight);
+                  updateSpoolWeight(spoolId, weight);
+                } else {
+                  Serial.println("No valid spool ID found for weight update");
+                }
+              } else {
+                Serial.println("Error parsing payload for spool ID extraction");
+              }
+              
+              payloadDoc.clear();
+            } else {
+              Serial.printf("Weight %dg is not above 20g threshold - skipping weight update\n", weight);
+            }
           }else{
             // Potentially handle errors
           }
