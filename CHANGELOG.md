@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.0.2] - 2025-09-01
+### Added
+- add weight check and update spool weight in writeJsonToTag function
+- add German and English wiki documentation
+
+### Changed
+- update platformio.ini for version v2.0.2
+- remove redundant tare calls in setup and start_scale functions
+
+
 ## [2.0.1] - 2025-08-30
 ### Breaking Changes
 - enhance commit categorization for breaking changes
