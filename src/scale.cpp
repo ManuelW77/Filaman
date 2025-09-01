@@ -250,13 +250,15 @@ void start_scale(bool touchSensorConnected) {
 
   scale.set_scale(calibrationValue);
   //vTaskDelay(pdMS_TO_TICKS(5000));
-  //scale.tare();
 
   // Initialize weight stabilization filter
   resetWeightFilter();
 
   // Display Gewicht
   oledShowWeight(0);
+
+  vTaskDelay(1000 / portTICK_PERIOD_MS);
+  scale.tare();
 
   Serial.println("starte Scale Task");
   BaseType_t result = xTaskCreatePinnedToCore(
