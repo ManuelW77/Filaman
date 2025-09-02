@@ -242,6 +242,10 @@ void loop() {
         {
           autoSetToBambuSpoolId = activeSpoolId.toInt();
         }
+        if (octoEnabled) 
+        {
+          updateOctoSpoolId = activeSpoolId.toInt();
+        }
       }
       else
       {
@@ -271,7 +275,7 @@ void loop() {
 
     if(octoEnabled && sendOctoUpdate && spoolmanApiState == API_IDLE)
     {
-      updateSpoolOcto(activeSpoolId.toInt());
+      updateSpoolOcto(updateOctoSpoolId);
       sendOctoUpdate = false;
     }
   }

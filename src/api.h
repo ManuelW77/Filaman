@@ -33,6 +33,7 @@ extern bool sendOctoUpdate;
 extern String octoUrl;
 extern String octoToken;
 extern bool spoolmanConnected;
+extern uint16_t updateOctoSpoolId;
 
 bool checkSpoolmanInstance();
 bool saveSpoolmanUrl(const String& url, bool octoOn, const String& octoWh, const String& octoTk);

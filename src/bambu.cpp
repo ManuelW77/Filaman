@@ -21,7 +21,7 @@ TaskHandle_t BambuMqttTask;
 bool bambuDisabled = false;
 
 bool bambu_connected = false;
-int autoSetToBambuSpoolId = 0;
+uint16_t autoSetToBambuSpoolId = 0;
 
 BambuCredentials bambuCredentials;
 

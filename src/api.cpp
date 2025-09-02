@@ -21,6 +21,7 @@ uint16_t foundVendorId = 0;    // Store ID of found vendor
 uint16_t foundFilamentId = 0;  // Store ID of found filament
 uint16_t createdFilamentId = 0;  // Store ID of newly created filament
 uint16_t createdSpoolId = 0;  // Store ID of newly created spool
+uint16_t updateOctoSpoolId = 0; // Store spool ID for OctoPrint update
 bool spoolmanConnected = false;
 bool spoolmanExtraFieldsChecked = false;
 TaskHandle_t* apiTask;
