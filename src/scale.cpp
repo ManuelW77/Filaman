@@ -141,7 +141,7 @@ uint8_t setAutoTare(bool autoTareValue) {
 uint8_t tareScale() {
   Serial.println("Tare scale");
   scale.tare();
-  resetWeightFilter(); // Reset stabilization filter after tare
+  scaleTareRequest == true;
   
   return 1;
 }
@@ -151,6 +151,7 @@ void scale_loop(void * parameter) {
   Serial.println("Scale Loop started");
   Serial.println("++++++++++++++++++++++++++++++");
 
+  scaleTareRequest == true;
   // Initialize weight filter
   resetWeightFilter();
   lastMeasurementTime = millis();
@@ -256,11 +257,6 @@ void start_scale(bool touchSensorConnected) {
 
   // Display Gewicht
   oledShowWeight(0);
-
-  vTaskDelay(500 / portTICK_PERIOD_MS);
-  scale.tare();
-  vTaskDelay(500 / portTICK_PERIOD_MS);
-  weight = 0;
 
   Serial.println("starte Scale Task");
   BaseType_t result = xTaskCreatePinnedToCore(
