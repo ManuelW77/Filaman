@@ -81,7 +81,7 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
         else if (doc["type"] == "scale") {
             uint8_t success = 0;
             if (doc["payload"] == "tare") {
-                scaleTareRequest == true;
+                scaleTareRequest = true;
                 success = 1;
                 //success = tareScale();
             }
