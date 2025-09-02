@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.4] - 2025-09-02
+### Changed
+- filter out automatic release documentation commits in changelog categorization
+- disable auto tare and weight filter reset in scale loop
+
+
 ## [2.0.3] - 2025-09-02
 ### Added
 - add updateOctoSpoolId for OctoPrint integration and change autoSetToBambuSpoolId type to uint16_t
