@@ -142,7 +142,6 @@ uint8_t tareScale() {
   Serial.println("Tare scale");
   scale.tare();
   resetWeightFilter();
-  scaleTareRequest == true;
   
   return 1;
 }
