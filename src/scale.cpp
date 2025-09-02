@@ -141,6 +141,7 @@ uint8_t setAutoTare(bool autoTareValue) {
 uint8_t tareScale() {
   Serial.println("Tare scale");
   scale.tare();
+  resetWeightFilter();
   scaleTareRequest == true;
   
   return 1;
@@ -151,7 +152,7 @@ void scale_loop(void * parameter) {
   Serial.println("Scale Loop started");
   Serial.println("++++++++++++++++++++++++++++++");
 
-  scaleTareRequest == true;
+  //scaleTareRequest == true;
   // Initialize weight filter
   resetWeightFilter();
   lastMeasurementTime = millis();
