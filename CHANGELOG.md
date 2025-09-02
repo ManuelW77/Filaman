@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.0.2-beta1] - 2025-09-02
+### Changed
+- update platformio.ini for beta version v2.0.2-beta1
+
+### Fixed
+- reset weight counter logic and update spool ID in loop function
+- reduce delay in start_scale function and reset weight after tare
+
+
 ## [2.0.2] - 2025-09-01
 ### Added
 - add weight check and update spool weight in writeJsonToTag function
