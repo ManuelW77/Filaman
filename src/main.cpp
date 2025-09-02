@@ -220,7 +220,6 @@ void loop() {
     }
 
     // reset weight counter after writing tag
-    // TBD: what exactly is the logic behind this?
     if (currentMillis - lastWeightReadTime >= weightReadInterval && nfcReaderState != NFC_IDLE && nfcReaderState != NFC_READ_SUCCESS)
     {
       weigthCouterToApi = 0;
@@ -272,7 +271,7 @@ void loop() {
 
     if(octoEnabled && sendOctoUpdate && spoolmanApiState == API_IDLE)
     {
-      updateSpoolOcto(autoSetToBambuSpoolId);
+      updateSpoolOcto(activeSpoolId.toInt());
       sendOctoUpdate = false;
     }
   }
