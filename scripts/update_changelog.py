@@ -42,6 +42,12 @@ def categorize_commit(commit_msg):
     """Categorize commit messages based on conventional commits"""
     lower_msg = commit_msg.lower()
     
+    # Filter out automatic release documentation commits
+    if ('docs:' in lower_msg and 
+        ('update changelog and header for version' in lower_msg or 
+         'update platformio.ini for' in lower_msg)):
+        return None  # Skip these commits
+    
     # Check for breaking changes first
     if ('!' in commit_msg and any(x in lower_msg for x in ['feat!', 'fix!', 'chore!', 'refactor!'])) or \
        'breaking change' in lower_msg or 'breaking:' in lower_msg:
@@ -77,11 +83,12 @@ def get_changes_from_git():
         for commit in commits:
             if commit:
                 category = categorize_commit(commit)
-                # Clean up commit message
-                clean_msg = re.sub(r'^(feat|fix|chore|docs|style|refactor|perf|test)(\(.*\))?!?:', '', commit).strip()
-                # Remove BREAKING CHANGE prefix if present
-                clean_msg = re.sub(r'^breaking change:\s*', '', clean_msg, flags=re.IGNORECASE).strip()
-                changes[category].append(clean_msg)
+                if category is not None:  # Skip commits that return None (filtered out)
+                    # Clean up commit message
+                    clean_msg = re.sub(r'^(feat|fix|chore|docs|style|refactor|perf|test)(\(.*\))?!?:', '', commit).strip()
+                    # Remove BREAKING CHANGE prefix if present
+                    clean_msg = re.sub(r'^breaking change:\s*', '', clean_msg, flags=re.IGNORECASE).strip()
+                    changes[category].append(clean_msg)
                 
     except subprocess.CalledProcessError:
         print("Error: Failed to get git commits")
