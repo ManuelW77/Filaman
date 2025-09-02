@@ -59,6 +59,7 @@ void setup() {
 
   // Scale
   start_scale(touchSensorConnected);
+  scaleTareRequest = true;
 
   // WDT initialisieren mit 10 Sekunden Timeout
   bool panic = true; // Wenn true, löst ein WDT-Timeout einen System-Panik aus
