@@ -1,5 +1,34 @@
 # Changelog
 
+## [2.0.3] - 2025-09-02
+### Added
+- add updateOctoSpoolId for OctoPrint integration and change autoSetToBambuSpoolId type to uint16_t
+
+### Changed
+- update platformio.ini for version v2.0.3
+- update changelog and header for version v2.0.2-beta6
+- update platformio.ini for beta version v2.0.2-beta6
+- update changelog and header for version v2.0.2-beta5
+- update platformio.ini for beta version v2.0.2-beta5
+- update changelog and header for version v2.0.2-beta4
+- update platformio.ini for beta version v2.0.2-beta4
+- update changelog and header for version v2.0.2-beta3
+- update platformio.ini for beta version v2.0.2-beta3
+- update changelog and header for version v2.0.2-beta2
+- update platformio.ini for beta version v2.0.2-beta2
+- update changelog and header for version v2.0.2-beta1
+- update platformio.ini for beta version v2.0.2-beta1
+
+### Fixed
+- set scale tare request to true in setup function
+- correct assignment operator in scale tare request handling
+- correct tare scale request handling in tareScale function
+- reset weight filter after tare scale operation
+- correct tare scale function to set scaleTareRequest flag
+- reset weight counter logic and update spool ID in loop function
+- reduce delay in start_scale function and reset weight after tare
+
+
 ## [2.0.2-beta6] - 2025-09-02
 ### Added
 - add updateOctoSpoolId for OctoPrint integration and change autoSetToBambuSpoolId type to uint16_t
