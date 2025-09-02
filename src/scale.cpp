@@ -167,8 +167,9 @@ void scale_loop(void * parameter) {
         if (autoTare && scale_tare_counter >= 5) 
         {
           Serial.println("Auto Tare scale");
-          scale.tare();
-          resetWeightFilter(); // Reset filter after auto tare
+          //scale.tare();
+          //resetWeightFilter(); // Reset filter after auto tare
+          scaleTareRequest = true;
           scale_tare_counter = 0;
         }
 
