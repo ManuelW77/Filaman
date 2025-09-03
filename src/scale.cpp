@@ -161,21 +161,10 @@ void scale_loop(void * parameter) {
     
     // Only measure at defined intervals to reduce noise
     if (currentTime - lastMeasurementTime >= MEASUREMENT_INTERVAL_MS) {
-      // Prüfen ob die Waage korrekt genullt ist
-      // Abweichung von 2g ignorieren
-      if (autoTare && (weight > 2 && weight < 7) || weight < -2)
-      {
-        scale_tare_counter++;
-      }
-      else
-      {
-        scale_tare_counter = 0;
-      }
-
       if (scale.is_ready()) 
       {
         // Waage manuell Taren
-        if (scaleTareRequest == true || (autoTare && scale_tare_counter >= 5)) 
+        if (scaleTareRequest == true || (autoTare && scale_tare_counter >= 20)) 
         {
           Serial.println("Re-Tare scale");
           oledShowMessage("TARE Scale");
@@ -200,6 +189,17 @@ void scale_loop(void * parameter) {
           weight = stabilizedWeight;
         }
         
+        // Prüfen ob die Waage korrekt genullt ist
+        // Abweichung von 2g ignorieren
+        if (autoTare && (rawWeight > 2 && rawWeight < 7) || rawWeight < -2)
+        {
+          scale_tare_counter++;
+        }
+        else
+        {
+          scale_tare_counter = 0;
+        }
+
         // Debug output for monitoring (can be removed in production)
         static unsigned long lastDebugTime = 0;
         if (currentTime - lastDebugTime > 2000) { // Print every 2 seconds
