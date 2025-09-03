@@ -6,7 +6,8 @@
 - improve auto tare logic and reset conditions in scale handling
 
 ### Fixed
-- update progress bar message from "Tare scale" to "Searching scale" fix: Scale tare function after boot
+- update progress bar message from 'Tare scale' to 'Searching scale' 
+- Scale tare function after boot
 
 
 ## [2.0.4-beta2] - 2025-09-03
