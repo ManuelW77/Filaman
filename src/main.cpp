@@ -135,7 +135,7 @@ void loop() {
   }
 
   // Wenn Bambu auto set Spool aktiv
-  if (bambuCredentials.autosend_enable && autoSetToBambuSpoolId > 0) 
+  if (bambuCredentials.autosend_enable && autoSetToBambuSpoolId > 0 && !nfcWriteInProgress) 
   {
     if (!bambuDisabled && !bambu_connected) 
     {
@@ -154,7 +154,9 @@ void loop() {
         {
           autoSetToBambuSpoolId = 0;
           autoAmsCounter = 0;
-          oledShowWeight(weight);
+          if (!nfcWriteInProgress) {
+            oledShowWeight(weight);
+          }
         }
       }
       else
@@ -176,7 +178,8 @@ void loop() {
   else 
   {
     // Ausgabe der Waage auf Display
-    if(pauseMainTask == 0)
+    // Block weight display during NFC write operations
+    if(pauseMainTask == 0 && !nfcWriteInProgress)
     {
       // Use filtered weight for smooth display, but still check API weight for significant changes
       int16_t displayWeight = getFilteredDisplayWeight();
