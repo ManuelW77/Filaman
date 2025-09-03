@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.0.6] - 2025-09-03
+### Fixed
+- correct progress bar message and update tare function description
+
+
 ## [2.0.5] - 2025-09-03
 ### Changed
 - adjust auto tare counter threshold and reposition tare check in scale loop
