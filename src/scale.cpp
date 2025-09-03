@@ -242,7 +242,7 @@ void start_scale(bool touchSensorConnected) {
 
   scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
 
-  oledShowProgressBar(6, 7, DISPLAY_BOOT_TEXT, "Tare scale");
+  oledShowProgressBar(6, 7, DISPLAY_BOOT_TEXT, "Serching scale");
   for (uint16_t i = 0; i < 3000; i++) {
     yield();
     vTaskDelay(pdMS_TO_TICKS(1));
