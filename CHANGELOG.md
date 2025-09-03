@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.4-beta2] - 2025-09-03
+### Changed
+- adjust auto tare counter threshold and reposition tare check in scale loop
+- improve auto tare logic and reset conditions in scale handling
+
+
 ## [2.0.4-beta1] - 2025-09-03
 ### Changed
 - improve auto tare logic and reset conditions in scale handling
