@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.0.4-beta1] - 2025-09-03
+### Changed
+- improve auto tare logic and reset conditions in scale handling
+
+
 ## [2.0.4] - 2025-09-02
 ### Changed
 - filter out automatic release documentation commits in changelog categorization
