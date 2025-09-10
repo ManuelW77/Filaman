@@ -13,7 +13,9 @@ Discord Server: [https://discord.gg/my7Gvaxj2v](https://discord.gg/my7Gvaxj2v)
 
 ## NEU: Recycling Fabrik
 
-[![Recycling Fabrik](img/rf-logo.png)](https://www.recyclingfabrik.com)
+<a href="https://www.recyclingfabrik.com" target="_blank">
+    <img src="img/rf-logo.png" alt="Recycling Fabrik" width="200">
+</a>
 
 FilaMan wird von [Recycling Fabrik](https://www.recyclingfabrik.com) unterstützt.
 Recycling Fabrik wird demnächst auf seinen Spulen einen FilaMan tauglichen NFC Tag anbieten. Das hat den Vorteil,
