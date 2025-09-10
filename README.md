@@ -15,6 +15,24 @@ or my website: [FilaMan Website](https://www.filaman.app)
 german explanatory video: [Youtube](https://youtu.be/uNDe2wh9SS8?si=b-jYx4I1w62zaOHU)  
 Discord Server: [https://discord.gg/my7Gvaxj2v](https://discord.gg/my7Gvaxj2v)
 
+## NEW: Recycling Fabrik
+
+<a href="https://www.recyclingfabrik.com" target="_blank">
+    <img src="img/rf-logo.png" alt="Recycling Fabrik" width="200">
+</a>
+
+FilaMan is supported by [Recycling Fabrik](https://www.recyclingfabrik.com).
+Recycling Fabrik will soon offer a FilaMan-compatible NFC tag on their spools. This has the advantage
+that the spools can be automatically recognized and imported into Spoolman directly via FilaMan.
+
+**What is Recycling Fabrik?**
+
+Recycling Fabrik is a German company dedicated to developing and manufacturing sustainable 3D printing filament. 
+Their filaments are made from 100% recycled material from both end customers and industry – for an environmentally conscious and resource-saving future.
+
+More information and products can be found here: [www.recyclingfabrik.com](https://www.recyclingfabrik.com)
+---
+
 ### Now more detailed informations about the usage: [Wiki](https://github.com/ManuelW77/Filaman/wiki)
 
 ### ESP32 Hardware Features
