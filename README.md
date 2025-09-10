@@ -31,6 +31,7 @@ Recycling Fabrik is a German company dedicated to developing and manufacturing s
 Their filaments are made from 100% recycled material from both end customers and industry – for an environmentally conscious and resource-saving future.
 
 More information and products can be found here: [www.recyclingfabrik.com](https://www.recyclingfabrik.com)
+
 ---
 
 ### Now more detailed informations about the usage: [Wiki](https://github.com/ManuelW77/Filaman/wiki)
