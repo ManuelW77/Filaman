@@ -11,6 +11,21 @@ oder auf meiner Website: [FilaMan Website](https://www.filaman.app)
 Deutsches Erklärvideo: [Youtube](https://youtu.be/uNDe2wh9SS8?si=b-jYx4I1w62zaOHU)  
 Discord Server: [https://discord.gg/my7Gvaxj2v](https://discord.gg/my7Gvaxj2v)
 
+## NEU: Recycling Fabrik
+
+[![Recycling Fabrik](img/rf-logo.png)](https://www.recyclingfabrik.com)
+
+FilaMan wird von [Recycling Fabrik](https://www.recyclingfabrik.com) unterstützt.
+Recycling Fabrik wird demnächst auf seinen Spulen einen FilaMan tauglichen NFC Tag anbieten. Das hat den Vorteil,
+dass die Spulen direkt über FilaMan, ganz automatisch, erkannt und in Spoolman importiert werden können.
+
+**Was ist Recycling Fabrik?**
+
+Die Recycling Fabrik ist ein deutsches Unternehmen, das sich der Entwicklung und Herstellung von nachhaltigem 3D-Druck-Filament verschrieben hat. 
+Ihre Filamente bestehen zu 100 % aus recyceltem Material, welches sowohl vom Endkunden, als auch aus der Industrie stammt – für eine umweltbewusste und ressourcenschonende Zukunft.
+
+Mehr Informationen und Produkte findest du hier: [www.recyclingfabrik.com](https://www.recyclingfabrik.com)
+
 ### Es gibt jetzt auch ein Wiki, dort sind nochmal alle Funktionen beschrieben: [Wiki](https://github.com/ManuelW77/Filaman/wiki)
 
 ### ESP32 Hardware-Funktionen
