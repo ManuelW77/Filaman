@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.7] - 2025-09-13
+### Added
+- add HTTP service to mDNS responder
+- add additional information about Recycling Fabrik in README files
+- add Recycling Fabrik section with logo and information
+- add RF logo image
+- add support information for Recycling Fabrik
+
+### Changed
+- remove unnecessary separator in Recycling Fabrik section
+
+### Fixed
+- update Recycling Fabrik logo display format in README
+- prevent weight display during NFC write operations
+
+
 ## [2.0.6-beta1] - 2025-09-03
 ### Fixed
 - prevent weight display during NFC write operations
