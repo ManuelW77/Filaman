@@ -28,7 +28,7 @@ int16_t lastDisplayedWeight = 0;
 int16_t lastStableWeight = 0;        // For API/action triggering
 unsigned long lastMeasurementTime = 0;
 
-uint8_t weigthCouterToApi = 0;
+uint8_t weightCounterToApi = 0;
 uint8_t scale_tare_counter = 0;
 bool scaleTareRequest = false;
 uint8_t pauseMainTask = 0;
@@ -285,8 +285,8 @@ uint8_t calibrate_scale() {
 
   scaleCalibrationActive = true;
 
-  vTaskSuspend(RfidReaderTask);
-  vTaskSuspend(ScaleTask);
+  if (RfidReaderTask != NULL) vTaskSuspend(RfidReaderTask);
+  if (ScaleTask != NULL) vTaskSuspend(ScaleTask);
 
   pauseBambuMqttTask = true;
   pauseMainTask = 1;
@@ -393,8 +393,8 @@ uint8_t calibrate_scale() {
     returnState = 0;
   }
 
-  vTaskResume(RfidReaderTask);
-  vTaskResume(ScaleTask);
+  if (RfidReaderTask != NULL) vTaskResume(RfidReaderTask);
+  if (ScaleTask != NULL) vTaskResume(ScaleTask);
   pauseBambuMqttTask = false;
   pauseMainTask = 0;
   scaleCalibrationActive = false;

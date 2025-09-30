@@ -18,7 +18,7 @@ int16_t getFilteredDisplayWeight();
 
 extern HX711 scale;
 extern int16_t weight;
-extern uint8_t weigthCouterToApi;
+extern uint8_t weightCounterToApi;
 extern uint8_t scale_tare_counter;
 extern uint8_t scaleTareRequest;
 extern uint8_t pauseMainTask;
