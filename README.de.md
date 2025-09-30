@@ -170,15 +170,26 @@ A+ grün*
   - Verbindungskabel
 
 ## Wichtiger Hinweis
-Du musst Spoolman auf DEBUG Modus setzten, da man bisher in Spoolman keine CORS Domains setzen kann!
+Für die CORS-Kompatibilität mit FilaMan musst du Spoolman so konfigurieren, dass Cross-Origin-Requests erlaubt werden.
 
+### Docker Installation
+Füge diese Umgebungsvariable zu deiner Spoolman Docker-Konfiguration hinzu:
+
+**In deiner `docker-compose.yml`:**
+```yaml
+services:
+  spoolman:
+    # ... andere Konfiguration
+    environment:
+      - SPOOLMAN_CORS_ORIGIN=*
 ```
-# Enable debug mode
-# If enabled, the client will accept requests from any host
-# This can be useful when developing, but is also a security risk
-# Default: FALSE
-#SPOOLMAN_DEBUG_MODE=TRUE
+
+**Oder bei Verwendung von `docker run`:**
+```bash
+docker run -e SPOOLMAN_CORS_ORIGIN=* [andere Optionen] ghcr.io/donkie/spoolman:latest
 ```
+
+**Sicherheitshinweis:** Die Verwendung von `SPOOLMAN_CORS_ORIGIN=*` erlaubt Requests von jeder Origin. Für Produktionsumgebungen solltest du stattdessen die spezifische IP-Adresse deines FilaMan-Systems angeben (z.B. `SPOOLMAN_CORS_ORIGIN=http://192.168.1.100`) anstelle von `*`, um die Sicherheit zu erhöhen.
 
 ## Schritt-für-Schritt Installation
 ### Einfache Installation
