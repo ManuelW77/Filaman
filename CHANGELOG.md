@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.8] - 2025-10-15
+### Added
+- Fix: Add NULL checks to prevent crash without RFID module
+
+### Changed
+- Merge pull request #51 from Anzarion/main
+
+
 ## [2.0.7] - 2025-09-13
 ### Added
 - add HTTP service to mDNS responder
