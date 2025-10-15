@@ -14,17 +14,45 @@ def get_version():
         return version_match.group(1) if version_match else None
 
 def get_last_tag():
+    """Get the last non-beta tag for changelog generation"""
     try:
-        result = subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], 
+        # Get all tags sorted by version
+        result = subprocess.run(['git', 'tag', '-l', '--sort=-version:refname'], 
                               capture_output=True, text=True)
-        return result.stdout.strip()
+        if result.returncode != 0:
+            return None
+            
+        tags = result.stdout.strip().split('\n')
+        
+        # Find the first (newest) non-beta tag
+        for tag in tags:
+            if tag and not '-beta' in tag.lower():
+                print(f"Using last stable tag for changelog: {tag}")
+                return tag
+        
+        # Fallback: if no non-beta tags found, use the newest tag
+        print("No stable tags found, using newest tag")
+        if tags and tags[0]:
+            return tags[0]
+        return None
     except subprocess.CalledProcessError:
         return None
 
 def categorize_commit(commit_msg):
     """Categorize commit messages based on conventional commits"""
     lower_msg = commit_msg.lower()
-    if any(x in lower_msg for x in ['feat', 'add', 'new']):
+    
+    # Filter out automatic release documentation commits
+    if ('docs:' in lower_msg and 
+        ('update changelog and header for version' in lower_msg or 
+         'update platformio.ini for' in lower_msg)):
+        return None  # Skip these commits
+    
+    # Check for breaking changes first
+    if ('!' in commit_msg and any(x in lower_msg for x in ['feat!', 'fix!', 'chore!', 'refactor!'])) or \
+       'breaking change' in lower_msg or 'breaking:' in lower_msg:
+        return 'Breaking Changes'
+    elif any(x in lower_msg for x in ['feat', 'add', 'new']):
         return 'Added'
     elif any(x in lower_msg for x in ['fix', 'bug']):
         return 'Fixed'
@@ -34,6 +62,7 @@ def categorize_commit(commit_msg):
 def get_changes_from_git():
     """Get changes from git commits since last tag"""
     changes = {
+        'Breaking Changes': [],
         'Added': [],
         'Changed': [],
         'Fixed': []
@@ -54,9 +83,12 @@ def get_changes_from_git():
         for commit in commits:
             if commit:
                 category = categorize_commit(commit)
-                # Clean up commit message
-                clean_msg = re.sub(r'^(feat|fix|chore|docs|style|refactor|perf|test)(\(.*\))?:', '', commit).strip()
-                changes[category].append(clean_msg)
+                if category is not None:  # Skip commits that return None (filtered out)
+                    # Clean up commit message
+                    clean_msg = re.sub(r'^(feat|fix|chore|docs|style|refactor|perf|test)(\(.*\))?!?:', '', commit).strip()
+                    # Remove BREAKING CHANGE prefix if present
+                    clean_msg = re.sub(r'^breaking change:\s*', '', clean_msg, flags=re.IGNORECASE).strip()
+                    changes[category].append(clean_msg)
                 
     except subprocess.CalledProcessError:
         print("Error: Failed to get git commits")

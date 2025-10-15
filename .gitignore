@@ -32,6 +32,7 @@ test/README
 data/*
 !data/
 !data/.gitkeep
+# important
 html/bambu_credentials.json
 html/spoolman_url.json
 _local/*
@@ -39,3 +40,4 @@ website/*
 release.sh
 .github/copilot-instructions.md
 data
+wiki

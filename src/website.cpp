@@ -48,9 +48,15 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
     } else if (type == WS_EVT_PONG) {
         Serial.printf("WebSocket Client #%u pong\n", client->id());
     } else if (type == WS_EVT_DATA) {
-        String message = String((char*)data);
         JsonDocument doc;
-        deserializeJson(doc, message);
+        DeserializationError error = deserializeJson(doc, (char*)data, len);
+        //String message = String((char*)data);
+        //deserializeJson(doc, message);
+
+        if (error) {
+            Serial.println("JSON deserialization failed: " + String(error.c_str()));
+            return;
+        }
 
         if (doc["type"] == "heartbeat") {
             // Sende Heartbeat-Antwort
@@ -75,7 +81,9 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
         else if (doc["type"] == "scale") {
             uint8_t success = 0;
             if (doc["payload"] == "tare") {
-                success = tareScale();
+                scaleTareRequest = true;
+                success = 1;
+                //success = tareScale();
             }
 
             if (doc["payload"] == "calibrate") {

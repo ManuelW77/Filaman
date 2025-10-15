@@ -13,13 +13,115 @@ TaskHandle_t ScaleTask;
 
 int16_t weight = 0;
 
-uint8_t weigthCouterToApi = 0;
+// Weight stabilization variables
+#define MOVING_AVERAGE_SIZE 8           // Reduced from 20 to 8 for faster response
+#define LOW_PASS_ALPHA 0.3f            // Increased from 0.15 to 0.3 for faster tracking
+#define DISPLAY_THRESHOLD 0.3f         // Reduced from 0.5 to 0.3g for more responsive display
+#define API_THRESHOLD 1.5f             // Reduced from 2.0 to 1.5g for faster API actions
+#define MEASUREMENT_INTERVAL_MS 30     // Reduced from 50ms to 30ms for faster updates
+
+float weightBuffer[MOVING_AVERAGE_SIZE];
+uint8_t bufferIndex = 0;
+bool bufferFilled = false;
+float filteredWeight = 0.0f;
+int16_t lastDisplayedWeight = 0;
+int16_t lastStableWeight = 0;        // For API/action triggering
+unsigned long lastMeasurementTime = 0;
+
+uint8_t weightCounterToApi = 0;
 uint8_t scale_tare_counter = 0;
 bool scaleTareRequest = false;
 uint8_t pauseMainTask = 0;
 bool scaleCalibrated;
 bool autoTare = true;
 bool scaleCalibrationActive = false;
+
+// ##### Weight stabilization functions #####
+
+/**
+ * Reset weight filter buffer - call after tare or calibration
+ */
+void resetWeightFilter() {
+  bufferIndex = 0;
+  bufferFilled = false;
+  filteredWeight = 0.0f;
+  lastDisplayedWeight = 0;
+  lastStableWeight = 0;            // Reset stable weight for API actions
+  
+  // Initialize buffer with zeros
+  for (int i = 0; i < MOVING_AVERAGE_SIZE; i++) {
+    weightBuffer[i] = 0.0f;
+  }
+}
+
+/**
+ * Calculate moving average from weight buffer
+ */
+float calculateMovingAverage() {
+  float sum = 0.0f;
+  int count = bufferFilled ? MOVING_AVERAGE_SIZE : bufferIndex;
+  
+  for (int i = 0; i < count; i++) {
+    sum += weightBuffer[i];
+  }
+  
+  return (count > 0) ? sum / count : 0.0f;
+}
+
+/**
+ * Apply low-pass filter to smooth weight readings
+ * Uses exponential smoothing: y_new = alpha * x_new + (1-alpha) * y_old
+ */
+float applyLowPassFilter(float newValue) {
+  filteredWeight = LOW_PASS_ALPHA * newValue + (1.0f - LOW_PASS_ALPHA) * filteredWeight;
+  return filteredWeight;
+}
+
+/**
+ * Process new weight reading with stabilization
+ * Returns stabilized weight value
+ */
+int16_t processWeightReading(float rawWeight) {
+  // Add to moving average buffer
+  weightBuffer[bufferIndex] = rawWeight;
+  bufferIndex = (bufferIndex + 1) % MOVING_AVERAGE_SIZE;
+  
+  if (bufferIndex == 0) {
+    bufferFilled = true;
+  }
+  
+  // Calculate moving average
+  float avgWeight = calculateMovingAverage();
+  
+  // Apply low-pass filter
+  float smoothedWeight = applyLowPassFilter(avgWeight);
+  
+  // Round to nearest gram
+  int16_t newWeight = round(smoothedWeight);
+  
+  // Update displayed weight if display threshold is reached
+  if (abs(newWeight - lastDisplayedWeight) >= DISPLAY_THRESHOLD) {
+    lastDisplayedWeight = newWeight;
+  }
+  
+  // Update global weight for API actions only if stable threshold is reached
+  int16_t weightToReturn = weight; // Default: keep current weight
+  
+  if (abs(newWeight - lastStableWeight) >= API_THRESHOLD) {
+    lastStableWeight = newWeight;
+    weightToReturn = newWeight;
+  }
+  
+  return weightToReturn;
+}
+
+/**
+ * Get current filtered weight for display purposes
+ * This returns the smoothed weight even if it hasn't triggered API actions
+ */
+int16_t getFilteredDisplayWeight() {
+  return lastDisplayedWeight;
+}
 
 // ##### Funktionen für Waage #####
 uint8_t setAutoTare(bool autoTareValue) {
@@ -39,6 +141,7 @@ uint8_t setAutoTare(bool autoTareValue) {
 uint8_t tareScale() {
   Serial.println("Tare scale");
   scale.tare();
+  resetWeightFilter();
   
   return 1;
 }
@@ -48,37 +151,66 @@ void scale_loop(void * parameter) {
   Serial.println("Scale Loop started");
   Serial.println("++++++++++++++++++++++++++++++");
 
+  //scaleTareRequest == true;
+  // Initialize weight filter
+  resetWeightFilter();
+  lastMeasurementTime = millis();
+
   for(;;) {
-    if (scale.is_ready()) 
-    {
-      // Waage automatisch Taren, wenn zu lange Abweichung
-      if (autoTare && scale_tare_counter >= 5) 
+    unsigned long currentTime = millis();
+    
+    // Only measure at defined intervals to reduce noise
+    if (currentTime - lastMeasurementTime >= MEASUREMENT_INTERVAL_MS) {
+      if (scale.is_ready()) 
       {
-        Serial.println("Auto Tare scale");
-        scale.tare();
-        scale_tare_counter = 0;
-      }
+        // Waage manuell Taren
+        if (scaleTareRequest == true || (autoTare && scale_tare_counter >= 20)) 
+        {
+          Serial.println("Re-Tare scale");
+          oledShowMessage("TARE Scale");
+          vTaskDelay(pdMS_TO_TICKS(1000));
+          scale.tare();
+          resetWeightFilter(); // Reset filter after manual tare
+          vTaskDelay(pdMS_TO_TICKS(1000));
+          oledShowWeight(0);
+          scaleTareRequest = false;
+          scale_tare_counter = 0;
+          weight = 0; // Reset global weight variable after tare
+        }
 
-      // Waage manuell Taren
-      if (scaleTareRequest == true) 
-      {
-        Serial.println("Re-Tare scale");
-        oledShowMessage("TARE Scale");
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        scale.tare();
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        oledShowWeight(0);
-        scaleTareRequest = false;
-      }
+        // Get raw weight reading
+        float rawWeight = scale.get_units();
+        
+        // Process weight with stabilization
+        int16_t stabilizedWeight = processWeightReading(rawWeight);
+        
+        // Update global weight variable only if it changed significantly (for API actions)
+        if (stabilizedWeight != weight) {
+          weight = stabilizedWeight;
+        }
+        
+        // Prüfen ob die Waage korrekt genullt ist
+        // Abweichung von 2g ignorieren
+        if (autoTare && (rawWeight > 2 && rawWeight < 7) || rawWeight < -2)
+        {
+          scale_tare_counter++;
+        }
+        else
+        {
+          scale_tare_counter = 0;
+        }
 
-      // Only update weight if median changed more than 1
-      int16_t newWeight = round(scale.get_units());
-      if(abs(weight-newWeight) > 1){
-        weight = newWeight;
+        // Debug output for monitoring (can be removed in production)
+        static unsigned long lastDebugTime = 0;
+        if (currentTime - lastDebugTime > 2000) { // Print every 2 seconds
+          lastDebugTime = currentTime;
+        }
+        
+        lastMeasurementTime = currentTime;
       }
     }
     
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(10)); // Shorter delay for more responsive loop
   }
 }
 
@@ -110,18 +242,22 @@ void start_scale(bool touchSensorConnected) {
 
   scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
 
-  oledShowProgressBar(6, 7, DISPLAY_BOOT_TEXT, "Tare scale");
-  for (uint16_t i = 0; i < 2000; i++) {
+  oledShowProgressBar(6, 7, DISPLAY_BOOT_TEXT, "Serching scale");
+  for (uint16_t i = 0; i < 3000; i++) {
     yield();
     vTaskDelay(pdMS_TO_TICKS(1));
     esp_task_wdt_reset();
   }
 
-  if (scale.wait_ready_timeout(1000))
-  {
-    scale.set_scale(calibrationValue); // this value is obtained by calibrating the scale with known weights; see the README for details
-    scale.tare();
+  while(!scale.is_ready()) {
+    vTaskDelay(pdMS_TO_TICKS(5000));
   }
+
+  scale.set_scale(calibrationValue);
+  //vTaskDelay(pdMS_TO_TICKS(5000));
+
+  // Initialize weight stabilization filter
+  resetWeightFilter();
 
   // Display Gewicht
   oledShowWeight(0);
@@ -149,8 +285,8 @@ uint8_t calibrate_scale() {
 
   scaleCalibrationActive = true;
 
-  vTaskSuspend(RfidReaderTask);
-  vTaskSuspend(ScaleTask);
+  if (RfidReaderTask != NULL) vTaskSuspend(RfidReaderTask);
+  if (ScaleTask != NULL) vTaskSuspend(ScaleTask);
 
   pauseBambuMqttTask = true;
   pauseMainTask = 1;
@@ -207,6 +343,7 @@ uint8_t calibrate_scale() {
       oledShowProgressBar(2, 3, "Scale Cal.", "Remove weight");
 
       scale.set_scale(newCalibrationValue);
+      resetWeightFilter(); // Reset filter after calibration
       for (uint16_t i = 0; i < 2000; i++) {
         yield();
         vTaskDelay(pdMS_TO_TICKS(1));
@@ -256,8 +393,8 @@ uint8_t calibrate_scale() {
     returnState = 0;
   }
 
-  vTaskResume(RfidReaderTask);
-  vTaskResume(ScaleTask);
+  if (RfidReaderTask != NULL) vTaskResume(RfidReaderTask);
+  if (ScaleTask != NULL) vTaskResume(ScaleTask);
   pauseBambuMqttTask = false;
   pauseMainTask = 0;
   scaleCalibrationActive = false;

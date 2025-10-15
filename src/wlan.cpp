@@ -36,6 +36,7 @@ void startMDNS() {
       vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
   }
+  MDNS.addService("http", "tcp", 80);
   Serial.println("mDNS responder started");
 }
 

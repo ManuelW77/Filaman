@@ -37,7 +37,7 @@ extern bool bambu_connected;
 extern int ams_count;
 extern AMSData ams_data[MAX_AMS];
 //extern bool autoSendToBambu;
-extern int autoSetToBambuSpoolId;
+extern uint16_t autoSetToBambuSpoolId;
 extern bool bambuDisabled;
 extern BambuCredentials bambuCredentials;
 

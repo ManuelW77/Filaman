@@ -15,6 +15,25 @@ or my website: [FilaMan Website](https://www.filaman.app)
 german explanatory video: [Youtube](https://youtu.be/uNDe2wh9SS8?si=b-jYx4I1w62zaOHU)  
 Discord Server: [https://discord.gg/my7Gvaxj2v](https://discord.gg/my7Gvaxj2v)
 
+## NEW: Recycling Fabrik
+
+<a href="https://www.recyclingfabrik.com" target="_blank">
+    <img src="img/rf-logo.png" alt="Recycling Fabrik" width="200">
+</a>
+
+FilaMan is supported by [Recycling Fabrik](https://www.recyclingfabrik.com).
+Recycling Fabrik will soon offer a FilaMan-compatible NFC tag on their spools. This has the advantage
+that the spools can be automatically recognized and imported into Spoolman directly via FilaMan.
+
+**What is Recycling Fabrik?**
+
+Recycling Fabrik is a German company dedicated to developing and manufacturing sustainable 3D printing filament. 
+Their filaments are made from 100% recycled material from both end customers and industry – for an environmentally conscious and resource-saving future.
+
+More information and products can be found here: [www.recyclingfabrik.com](https://www.recyclingfabrik.com)
+
+---
+
 ### Now more detailed informations about the usage: [Wiki](https://github.com/ManuelW77/Filaman/wiki)
 
 ### ESP32 Hardware Features
@@ -31,6 +50,7 @@ Discord Server: [https://discord.gg/my7Gvaxj2v](https://discord.gg/my7Gvaxj2v)
 	- Write filament data to NFC tags.
 	- uses NFC-Tag Format of [Openspool](https://github.com/spuder/OpenSpool)
 	- so you can use it with automatic Spool detection in AMS
+	- **Manufacturer Tag Support:** Automatic creation of Spoolman entries from manufacturer NFC tags ([Learn more](README_ManufacturerTags_EN.md))
 - **Bambulab AMS Integration:** 
   - Display current AMS tray contents.
   - Assign filaments to AMS slots.
@@ -43,7 +63,34 @@ Discord Server: [https://discord.gg/my7Gvaxj2v](https://discord.gg/my7Gvaxj2v)
   - Supports Spoolman Octoprint Plugin
 
 ### If you want to support my work, i would be happy to get a coffe
+
 <a href="https://www.buymeacoffee.com/manuelw" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 30px !important;width: 108px !important;" ></a>
+
+## Manufacturer Tags Support
+
+🎉 **Exciting News!** FilaMan now supports **Manufacturer Tags** - NFC tags that come pre-programmed directly from filament manufacturers!
+
+### First Manufacturer Partner: RecyclingFabrik
+
+We're thrilled to announce that [**RecyclingFabrik**](https://www.recyclingfabrik.de) will be the **first filament manufacturer** to support FilaMan by offering NFC tags in the FilaMan format on their spools!
+
+**Coming Soon:** RecyclingFabrik spools will include NFC tags that automatically integrate with your FilaMan system, eliminating manual setup and ensuring perfect compatibility.
+
+### How Manufacturer Tags Work
+
+When you scan a manufacturer NFC tag for the first time:
+1. **Automatic Brand Detection:** FilaMan recognizes the manufacturer and creates the brand in Spoolman
+2. **Filament Type Creation:** All material specifications are automatically added
+3. **Spool Registration:** Your specific spool is registered with proper weight and specifications
+4. **Future Fast Recognition:** Subsequent scans use fast-path detection for instant weight measurement
+
+**For detailed technical information:** [Manufacturer Tags Documentation](README_ManufacturerTags_EN.md)
+
+### Benefits for Users
+- ✅ **Zero Manual Setup** - Just scan and weigh
+- ✅ **Perfect Data Accuracy** - Manufacturer-verified specifications
+- ✅ **Instant Integration** - Seamless Spoolman compatibility
+- ✅ **Future-Proof** - Tags work with any FilaMan-compatible system
 
 ## Detailed Functionality
 
@@ -66,7 +113,7 @@ Discord Server: [https://discord.gg/my7Gvaxj2v](https://discord.gg/my7Gvaxj2v)
 - **OLED 0.96 Zoll I2C white/yellow Display:** 128x64 SSD1306.
 [Amazon Link](https://amzn.to/445aaa9)
 - **PN532 NFC NXP RFID-Modul V3:** For NFC tag operations.
-[Amazon Link](https://amzn.to/4iO6CO4)
+[Amazon Link](https://amzn.eu/d/gy9vaBX)
 - **NFC Tags NTAG213 NTAG215:** RFID Tag
 [Amazon Link](https://amzn.to/3E071xO)
 - **TTP223 Touch Sensor (optional):** For reTARE per Button/Touch

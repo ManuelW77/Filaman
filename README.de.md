@@ -11,6 +11,26 @@ oder auf meiner Website: [FilaMan Website](https://www.filaman.app)
 Deutsches Erklärvideo: [Youtube](https://youtu.be/uNDe2wh9SS8?si=b-jYx4I1w62zaOHU)  
 Discord Server: [https://discord.gg/my7Gvaxj2v](https://discord.gg/my7Gvaxj2v)
 
+## NEU: Recycling Fabrik
+
+<a href="https://www.recyclingfabrik.com" target="_blank">
+    <img src="img/rf-logo.png" alt="Recycling Fabrik" width="200">
+</a>
+
+FilaMan wird von [Recycling Fabrik](https://www.recyclingfabrik.com) unterstützt.
+Recycling Fabrik wird demnächst auf seinen Spulen einen FilaMan tauglichen NFC Tag anbieten. Das hat den Vorteil,
+dass die Spulen direkt über FilaMan, ganz automatisch, erkannt und in Spoolman importiert werden können.
+
+**Was ist Recycling Fabrik?**
+
+Die Recycling Fabrik ist ein deutsches Unternehmen, das sich der Entwicklung und Herstellung von nachhaltigem 3D-Druck-Filament verschrieben hat. 
+Ihre Filamente bestehen zu 100 % aus recyceltem Material, welches sowohl vom Endkunden, als auch aus der Industrie stammt – für eine umweltbewusste und ressourcenschonende Zukunft.
+
+Mehr Informationen und Produkte findest du hier: [www.recyclingfabrik.com](https://www.recyclingfabrik.com)
+
+---
+
+
 ### Es gibt jetzt auch ein Wiki, dort sind nochmal alle Funktionen beschrieben: [Wiki](https://github.com/ManuelW77/Filaman/wiki)
 
 ### ESP32 Hardware-Funktionen
@@ -27,6 +47,7 @@ Discord Server: [https://discord.gg/my7Gvaxj2v](https://discord.gg/my7Gvaxj2v)
     - Filamentdaten auf NFC-Tags schreiben.
     - Verwendet das NFC-Tag-Format von [Openspool](https://github.com/spuder/OpenSpool)
     - Ermöglicht automatische Spulenerkennung im AMS
+    - **Hersteller Tag Unterstützung:** Automatische Erstellung von Spoolman-Einträgen aus Hersteller NFC-Tags ([Mehr erfahren](README_ManufacturerTags_DE.md))
 - **Bambulab AMS-Integration:** 
   - Anzeige der aktuellen AMS-Fachbelegung.
   - Zuordnung von Filamenten zu AMS-Slots.
@@ -39,7 +60,34 @@ Discord Server: [https://discord.gg/my7Gvaxj2v](https://discord.gg/my7Gvaxj2v)
   - Unterstützt das Spoolman Octoprint Plugin
 
 ### Wenn Sie meine Arbeit unterstützen möchten, freue ich mich über einen Kaffee
+
 <a href="https://www.buymeacoffee.com/manuelw" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 30px !important;width: 108px !important;" ></a>
+
+## Hersteller Tags Unterstützung
+
+🎉 **Aufregende Neuigkeiten!** FilaMan unterstützt jetzt **Hersteller Tags** - NFC-Tags, die direkt von Filament-Herstellern vorprogrammiert geliefert werden!
+
+### Erster Hersteller-Partner: RecyclingFabrik
+
+Wir freuen uns anzukündigen, dass [**RecyclingFabrik**](https://www.recyclingfabrik.de) der **erste Filament-Hersteller** sein wird, der FilaMan unterstützt, indem sie NFC-Tags im FilaMan-Format auf ihren Spulen anbieten!
+
+**Demnächst verfügbar:** RecyclingFabrik-Spulen werden NFC-Tags enthalten, die sich automatisch in Ihr FilaMan-System integrieren, manuelle Einrichtung überflüssig machen und perfekte Kompatibilität gewährleisten.
+
+### Wie Hersteller Tags funktionieren
+
+Wenn Sie zum ersten Mal einen Hersteller NFC-Tag scannen:
+1. **Automatische Markenerkennung:** FilaMan erkennt den Hersteller und erstellt die Marke in Spoolman
+2. **Filament-Typ Erstellung:** Alle Materialspezifikationen werden automatisch hinzugefügt
+3. **Spulen-Registrierung:** Ihre spezifische Spule wird mit korrektem Gewicht und Spezifikationen registriert
+4. **Zukünftige Schnellerkennung:** Nachfolgende Scans verwenden Fast-Path-Erkennung für sofortige Gewichtsmessung
+
+**Für detaillierte technische Informationen:** [Hersteller Tags Dokumentation](README_ManufacturerTags_DE.md)
+
+### Vorteile für Benutzer
+- ✅ **Null manuelle Einrichtung** - Einfach scannen und wiegen
+- ✅ **Perfekte Datengenauigkeit** - Hersteller-verifizierte Spezifikationen
+- ✅ **Sofortige Integration** - Nahtlose Spoolman-Kompatibilität
+- ✅ **Zukunftssicher** - Tags funktionieren mit jedem FilaMan-kompatiblen System
 
 ## Detaillierte Funktionalität
 
@@ -62,7 +110,7 @@ Discord Server: [https://discord.gg/my7Gvaxj2v](https://discord.gg/my7Gvaxj2v)
 - **OLED 0.96 Zoll I2C white/yellow Display:** 128x64 SSD1306.
 [Amazon Link](https://amzn.to/445aaa9)
 - **PN532 NFC NXP RFID-Modul V3:** For NFC tag operations.
-[Amazon Link](https://amzn.to/4iO6CO4)
+[Amazon Link](https://amzn.eu/d/gy9vaBX)
 - **NFC Tags NTAG213 NTAG215:** RFID Tag
 [Amazon Link](https://amzn.to/3E071xO)
 - **TTP223 Touch Sensor (optional):** For reTARE per Button/Touch

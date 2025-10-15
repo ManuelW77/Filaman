@@ -17,7 +17,12 @@ typedef enum {
     API_REQUEST_BAMBU_UPDATE,
     API_REQUEST_SPOOL_TAG_ID_UPDATE,
     API_REQUEST_SPOOL_WEIGHT_UPDATE,
-    API_REQUEST_SPOOL_LOCATION_UPDATE
+    API_REQUEST_SPOOL_LOCATION_UPDATE,
+    API_REQUEST_VENDOR_CREATE,
+    API_REQUEST_VENDOR_CHECK,
+    API_REQUEST_FILAMENT_CHECK,
+    API_REQUEST_FILAMENT_CREATE,
+    API_REQUEST_SPOOL_CREATE
 } SpoolmanApiRequestType;
 
 extern volatile spoolmanApiStateType spoolmanApiState;
@@ -28,6 +33,7 @@ extern bool sendOctoUpdate;
 extern String octoUrl;
 extern String octoToken;
 extern bool spoolmanConnected;
+extern uint16_t updateOctoSpoolId;
 
 bool checkSpoolmanInstance();
 bool saveSpoolmanUrl(const String& url, bool octoOn, const String& octoWh, const String& octoTk);
@@ -40,5 +46,6 @@ uint8_t updateSpoolLocation(String spoolId, String location);
 bool initSpoolman(); // Neue Funktion zum Initialisieren von Spoolman
 bool updateSpoolBambuData(String payload); // Neue Funktion zum Aktualisieren der Bambu-Daten
 bool updateSpoolOcto(int spoolId); // Neue Funktion zum Aktualisieren der Octo-Daten
+bool createBrandFilament(JsonDocument& payload, String uidString);
 
 #endif
