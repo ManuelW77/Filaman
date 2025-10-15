@@ -203,11 +203,11 @@ void loop() {
       // Prüfen ob das Gewicht gleich bleibt und dann senden
       if (abs(weight - lastWeight) <= 2 && weight > 5)
       {
-        weigthCouterToApi++;
+        weightCounterToApi++;
       } 
       else 
       {
-        weigthCouterToApi = 0;
+        weightCounterToApi = 0;
         weightSend = 0;
       }
     }
@@ -215,13 +215,13 @@ void loop() {
     // reset weight counter after writing tag
     if (currentMillis - lastWeightReadTime >= weightReadInterval && nfcReaderState != NFC_IDLE && nfcReaderState != NFC_READ_SUCCESS)
     {
-      weigthCouterToApi = 0;
+      weightCounterToApi = 0;
     }
     
     lastWeight = weight;
 
     // Wenn ein Tag mit SM id erkannte wurde und der Waage Counter anspricht an SM Senden
-    if (activeSpoolId != "" && weigthCouterToApi > 3 && weightSend == 0 && nfcReaderState == NFC_READ_SUCCESS && tagProcessed == false && spoolmanApiState == API_IDLE) 
+    if (activeSpoolId != "" && weightCounterToApi > 3 && weightSend == 0 && nfcReaderState == NFC_READ_SUCCESS && tagProcessed == false && spoolmanApiState == API_IDLE) 
     {
       // set the current tag as processed to prevent it beeing processed again
       tagProcessed = true;
@@ -248,7 +248,7 @@ void loop() {
     }
 
     // Handle successful tag write: Send weight to Spoolman but NEVER auto-send to Bambu
-    if (activeSpoolId != "" && weigthCouterToApi > 3 && weightSend == 0 && nfcReaderState == NFC_WRITE_SUCCESS && tagProcessed == false && spoolmanApiState == API_IDLE) 
+    if (activeSpoolId != "" && weightCounterToApi > 3 && weightSend == 0 && nfcReaderState == NFC_WRITE_SUCCESS && tagProcessed == false && spoolmanApiState == API_IDLE) 
     {
       // set the current tag as processed to prevent it beeing processed again
       tagProcessed = true;
