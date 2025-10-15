@@ -1,5 +1,7 @@
 # Changelog
 
+## [2.0.9] - 2025-10-15
+
 ## [2.0.8] - 2025-10-15
 ### Added
 - Fix: Add NULL checks to prevent crash without RFID module
