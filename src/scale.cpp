@@ -309,7 +309,7 @@ uint8_t calibrate_scale() {
 
     oledShowProgressBar(1, 3, "Scale Cal.", "Place the weight");
 
-    for (uint16_t i = 0; i < 5000; i++) {
+    for (uint16_t i = 0; i < 10000; i++) {
       yield();
       vTaskDelay(pdMS_TO_TICKS(1));
       esp_task_wdt_reset();
@@ -344,7 +344,7 @@ uint8_t calibrate_scale() {
 
       scale.set_scale(newCalibrationValue);
       resetWeightFilter(); // Reset filter after calibration
-      for (uint16_t i = 0; i < 2000; i++) {
+      for (uint16_t i = 0; i < 10000; i++) {
         yield();
         vTaskDelay(pdMS_TO_TICKS(1));
         esp_task_wdt_reset();
